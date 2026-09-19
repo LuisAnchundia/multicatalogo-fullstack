@@ -1,0 +1,16 @@
+# Dependencias y compilados del frontend
+node_modules/
+dist/
+*.local
+
+# Variables de entorno
+.env
+
+# Binarios de Go
+*.exe
+
+# Editor / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
