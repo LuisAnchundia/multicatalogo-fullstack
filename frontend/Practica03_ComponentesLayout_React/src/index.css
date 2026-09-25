@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+button, a, input, select { touch-action: manipulation; }
+button:not(:disabled), select { cursor: pointer; }
+:focus-visible { outline: 3px solid #6366f1; outline-offset: 3px; }
+dialog::backdrop { background: rgb(2 6 23 / 95%); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
 @theme {
   --color-success: #16a34a;
   --color-success-light: #22c55e;

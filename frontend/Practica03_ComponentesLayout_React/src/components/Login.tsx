@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginRequest } from '../services/api';
 
@@ -10,7 +10,8 @@ const Login = () => {
   const [cargando, setCargando] = useState<boolean>(false);
 
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  if (user) return <Navigate to={user.rol === 'admin' ? '/' : '/tienda'} replace />;
 
   // Ahora la validación la hace el backend en POST /api/login
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -19,9 +20,9 @@ const Login = () => {
     setCargando(true);
 
     try {
-      const data = await loginRequest(email, password);
-      login(data.email, data.token);  // Guardamos correo y token en el contexto
-      navigate('/');
+      const data = await loginRequest(email.trim().toLowerCase(), password);
+      login({ email: data.email, rol: data.rol }, data.token);
+      navigate(data.rol === 'admin' ? '/' : '/tienda', { replace: true });
     } catch (err) {
       // Si el servidor está apagado fetch lanza TypeError, lo diferenciamos del 401
       const mensaje =
@@ -43,18 +44,20 @@ const Login = () => {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center border border-red-200">
+          <div role="alert" className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center border border-red-200">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="login-email" className="block text-sm font-medium text-slate-700 mb-2">
               Correo Electrónico
             </label>
             <input
               type="email"
+              id="login-email"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition"
@@ -64,11 +67,13 @@ const Login = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="login-password" className="block text-sm font-medium text-slate-700 mb-2">
               Contraseña
             </label>
             <input
               type="password"
+              id="login-password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition"
@@ -85,6 +90,11 @@ const Login = () => {
             {cargando ? 'Verificando...' : 'Iniciar Sesión'}
           </button>
         </form>
+        <div className="mt-6 rounded-lg bg-slate-50 p-4 text-xs text-slate-600 space-y-1">
+          <p className="font-semibold">Cuentas de prueba · contraseña: 123456</p>
+          <p>Admin: admin@upse.edu.ec</p>
+          <p>Cliente: cliente@upse.edu.ec</p>
+        </div>
       </div>
     </div>
   );

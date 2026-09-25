@@ -1,4 +1,4 @@
-import type { Producto } from "../context/CartContext";
+import type { Rol } from "../context/AuthContext";
 
 // La URL sale de la variable de entorno; si no existe se usa el backend local.
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -6,6 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 export interface LoginResponse {
   token: string;
   email: string;
+  rol: Rol;
 }
 
 // El backend responde { "error": "..." } cuando algo sale mal.
@@ -30,16 +31,10 @@ export const loginRequest = async (
     throw new Error((data as ErrorResponse).error || "No se pudo iniciar sesión");
   }
 
-  return data as LoginResponse;
-};
-
-// GET /api/productos -> trae el catálogo desde la API de Go
-export const getProductos = async (): Promise<Producto[]> => {
-  const res = await fetch(`${API_URL}/api/productos`);
-
-  if (!res.ok) {
-    throw new Error("No se pudo cargar el catálogo");
+  if (typeof data.email !== 'string' || !data.email ||
+      typeof data.token !== 'string' || !data.token ||
+      !['admin', 'cliente'].includes(data.rol)) {
+    throw new Error('Respuesta de login inválida. Revisa que el backend esté actualizado al Tema 5.');
   }
-
-  return (await res.json()) as Producto[];
+  return data as LoginResponse;
 };

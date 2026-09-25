@@ -7,14 +7,14 @@ import { IconCarrito, IconMenu, IconToggle, IconLogout } from "./Icons";
 
 const Navbar = () => {
   const { totalItems } = useCart();
-  const { logout, userEmail } = useAuth();
+  const { logout, user } = useAuth();
   const { isCollapsed, toggleCollapse, openSidebar } = useSidebar();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -43,8 +43,8 @@ const Navbar = () => {
           />
         </button>
 
-        <h2 className="text-slate-600 font-medium text-sm sm:text-base md:text-lg">
-          Panel de Administración
+        <h2 className="hidden sm:block text-slate-600 font-medium text-sm sm:text-base md:text-lg">
+          {user?.rol === 'admin' ? 'Panel de Administración' : 'Tienda MultiCatálogo'}
         </h2>
       </div>
 
@@ -65,19 +65,17 @@ const Navbar = () => {
         {/* Menú de usuario por clic: en pantallas táctiles el hover no funciona bien */}
         <div className="relative">
           <button
+            aria-label="Menú de usuario"
+            aria-expanded={menuAbierto}
+            onKeyDown={e => { if (e.key === 'Escape') setMenuAbierto(false); }}
             onClick={() => setMenuAbierto((prev) => !prev)}
             className="flex items-center gap-3"
           >
             <span className="hidden sm:block text-sm text-slate-500">
-              {userEmail}
+              {user?.email}
             </span>
-            <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
-              <img
-                src="https://fastly.picsum.photos/id/64/4326/2884.jpg?hmac=9_SzX666YRpR_fOyYStXpfSiJ_edO3ghlSRnH2w09Kg"
-                alt="Avatar del usuario"
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold uppercase text-indigo-700">{user?.rol}</span>
+            <span aria-hidden="true" className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700">{user?.email.charAt(0).toUpperCase()}</span>
           </button>
 
           {menuAbierto && (
@@ -89,7 +87,7 @@ const Navbar = () => {
               />
               <div className="absolute right-0 top-full mt-2 w-44 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden">
                 <p className="sm:hidden px-4 py-2 text-xs text-slate-500 border-b border-slate-100 truncate">
-                  {userEmail}
+                  {user?.email}
                 </p>
                 <button
                   onClick={handleLogout}

@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
-import { IconDashboard, IconCatalogo, IconMiRed } from "./Icons";
+import { IconDashboard, IconCatalogo, IconMiRed, IconCarrito } from "./Icons";
+import { useAuth } from "../context/AuthContext";
 
 interface SidebarProps {
   isCollapsed: boolean; // true => 80px de ancho, solo iconos
@@ -9,12 +10,14 @@ interface SidebarProps {
 
 // Las opciones del menú se definen en un arreglo para no repetir el mismo JSX tres veces.
 const menu = [
-  { to: "/", label: "Dashboard", Icon: IconDashboard },
+  { to: "/", label: "Dashboard", Icon: IconDashboard, soloAdmin: true },
+  { to: "/tienda", label: "Tienda", Icon: IconCarrito },
   { to: "/catalogo", label: "Catálogo", Icon: IconCatalogo },
-  { to: "/mi-red", label: "Mi Red", Icon: IconMiRed },
+  { to: "/mi-red", label: "Mi Red", Icon: IconMiRed, soloAdmin: true },
 ];
 
 const Sidebar = ({ isCollapsed, isOpen, onClose }: SidebarProps) => {
+  const { user } = useAuth();
   return (
     <>
       {/* Fondo oscuro: aparece solo en móvil cuando el menú está abierto */}
@@ -29,7 +32,7 @@ const Sidebar = ({ isCollapsed, isOpen, onClose }: SidebarProps) => {
           En móvil mantiene los 256px para que el texto se lea; el colapso a 80px
           solo aplica de md hacia arriba. */}
       <aside
-        className={`fixed md:static top-0 left-0 z-40 h-screen bg-slate-900 text-white flex flex-col
+        className={`fixed md:static top-0 left-0 z-40 h-dvh shrink-0 bg-slate-900 text-white flex flex-col
           transform transition-all duration-300 w-64
           ${isCollapsed ? "md:w-20" : "md:w-64"}
           ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
@@ -38,7 +41,7 @@ const Sidebar = ({ isCollapsed, isOpen, onClose }: SidebarProps) => {
         <div className="h-16 flex items-center border-b border-slate-700 px-6 md:px-0 md:justify-center">
           <span
             className={`text-2xl font-bold whitespace-nowrap ${
-              isCollapsed ? "hidden md:hidden" : "md:block"
+              isCollapsed ? "md:hidden" : "md:block"
             }`}
           >
             MultiCatálogo
@@ -52,11 +55,13 @@ const Sidebar = ({ isCollapsed, isOpen, onClose }: SidebarProps) => {
           </span>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
-          {menu.map(({ to, label, Icon }) => (
+        <button onClick={onClose} className="md:hidden px-6 py-3 text-left">Cerrar menú</button>
+        <nav aria-label="Navegación principal" className="flex-1 p-4 space-y-2">
+          {menu.filter(item => !item.soloAdmin || user?.rol === 'admin').map(({ to, label, Icon }) => (
             <NavLink
               key={to}
               to={to}
+              aria-label={label}
               end={to === "/"}
               onClick={onClose}
               // Cuando está colapsado el title sirve de tooltip, porque el texto no se ve
@@ -76,6 +81,7 @@ const Sidebar = ({ isCollapsed, isOpen, onClose }: SidebarProps) => {
             </NavLink>
           ))}
         </nav>
+        <p className="p-4 text-center text-xs uppercase text-slate-300">{user?.rol}</p>
       </aside>
     </>
   );

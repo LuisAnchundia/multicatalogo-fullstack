@@ -1,74 +1,101 @@
-# MultiCatálogo
+# MultiCatálogo — Práctica 03, Tema 5
 
-Panel de administración hecho con React + TypeScript en el frontend y una API REST
-en Go (Fiber) en el backend. Es el proyecto base de la asignatura Framework de
-Programación Web, con el sidebar colapsable y el consumo de la API ya integrados.
+Proyecto académico con React 19, TypeScript, Vite, Tailwind CSS, React Router y API Go/Fiber.
+Implementa los ocho entregables de `Guia_Practica_Tema5_leccion.md`.
 
-## Estructura
+## Ejecutar
 
-```
-Practica03_Multicatalogo/
-├── frontend/Practica03_ComponentesLayout_React/   React + Vite + Tailwind
-└── backend/multicatalogo-backend/                 Go + Fiber
-```
+Requisitos: Node.js y npm compatibles con el `package-lock.json`, y Go según `backend/multicatalogo-backend/go.mod`.
+Desde la raíz del repositorio, abre dos terminales:
 
-## Cómo levantarlo
-
-Hacen falta las dos partes corriendo al mismo tiempo, en dos terminales.
-
-**1. Backend** (queda en el puerto 3000)
-
-```bash
+```powershell
 cd backend/multicatalogo-backend
 go run .
 ```
 
-**2. Frontend** (queda en el puerto 5173)
-
-```bash
+```powershell
 cd frontend/Practica03_ComponentesLayout_React
-npm install
-npm run dev
+npm ci
+npm run dev -- --port 5173 --strictPort
 ```
 
-Luego se abre http://localhost:5173.
+Abre <http://localhost:5173>. La API escucha en el puerto 3000.
+Las carpetas `Unidad1_Frontend/Proyecto_base` y `Unidad2_Backend/multicatalogo-backend`
+que cita la guía corresponden aquí a las carpetas `frontend/...` y `backend/...` anteriores.
 
-La URL de la API se lee de `VITE_API_URL`. Si no se crea el archivo `.env`, el
-frontend usa `http://localhost:3000` por defecto, así que normalmente no hay que
-configurar nada. Si se necesita cambiar, está el ejemplo en `.env.example`.
+La URL del login se configura con `VITE_API_URL` en el `.env` del frontend;
+por defecto es `http://localhost:3000`. Existe `.env.example`.
+Para usar otra IP, ajusta también los orígenes CORS en `backend/multicatalogo-backend/main.go`.
 
-## Credenciales de prueba
+## Cuentas de prueba
 
-| Correo              | Contraseña |
-| ------------------- | ---------- |
-| admin@upse.edu.ec   | 123456     |
+| Rol | Correo | Contraseña | Inicio |
+|---|---|---|---|
+| Admin | admin@upse.edu.ec | 123456 | Dashboard (`/`) |
+| Cliente | cliente@upse.edu.ec | 123456 | Tienda (`/tienda`) |
 
-## Endpoints
+## Funciones y alcance
 
-| Método | Ruta             | Qué hace                                        |
-| ------ | ---------------- | ----------------------------------------------- |
-| POST   | `/api/login`     | Valida las credenciales y devuelve un token      |
-| GET    | `/api/productos` | Devuelve el catálogo de productos                |
+| Entregable | Implementación |
+|---|---|
+| F1 | `/tienda`: hero de pantalla completa, 5 categorías y 4 destacados |
+| F2 | `/producto/:id`: detalle y estado de producto inexistente |
+| F3 | `/catalogo`: búsqueda por nombre/descripción y filtro en la URL |
+| F4 | Galería de 4 imágenes, lightbox modal, foco, Escape y flechas |
+| F5 | Carrito por cuenta, cantidades, checkout validado y confirmación |
+| F6 | `/mi-red`: árbol recursivo, tres niveles y comisiones |
+| F7 | `/`: KPIs derivados de las mismas funciones que usa Mi Red |
+| F8 | Login por API, rutas y navegación por rol |
 
-El CORS del backend permite `localhost:5173` y `127.0.0.1:5173`.
+Dashboard y Mi Red son exclusivos del administrador. Ambos roles acceden al flujo de compra.
+Los valores iniciales son 7 referidos, $4.090 en ventas, $319,50 en comisiones y nivel Plata.
 
-## Qué se implementó
+Según el alcance del Tema 5:
 
-**Sidebar colapsable**
+- El login llama a `POST /api/login`; el backend devuelve correo, rol y un token ficticio.
+- El frontend consume 8 productos mock mediante `services/productosService.ts`.
+- `GET /api/productos` conserva los 4 productos básicos del backend del tema anterior.
+- La red es un mock compartido en `data/red.ts`; los KPIs se calculan, no se escriben como cifras fijas en las vistas.
+- El checkout simula 1,2 segundos de procesamiento. No cobra dinero ni registra pedidos en una base de datos.
+- JWT real, PostgreSQL, pagos reales y gestión de referidos quedan fuera de esta práctica.
 
-- El componente `Sidebar` recibe la prop `isCollapsed`; cuando es `true` el ancho
-  baja de 256px a 80px y solo quedan los iconos.
-- El estado vive en `SidebarContext`, así el botón Toggle del `Navbar` puede
-  modificarlo aunque el Sidebar sea otro componente.
-- Cada opción del menú tiene su icono en SVG (`components/Icons.tsx`), sin
-  librerías externas.
-- En celular el menú funciona como cajón deslizable con fondo oscuro; el colapso
-  a 80px solo aplica de 768px hacia arriba, donde sí tiene sentido.
+## Persistencia y ajustes al ejemplo de la guía
 
-**Conexión con la API**
+El carrito se guarda en `localStorage` con la clave `multicatalogo_carrito_<email>`.
+`CartBoundary` remonta el contexto al cambiar de cuenta, evitando mezclar carritos.
+Los datos guardados se validan y los productos se reconstruyen desde el catálogo.
 
-- `services/api.ts` centraliza las llamadas con `fetch`.
-- El login dejó de estar quemado: ahora valida contra `POST /api/login` y guarda
-  el token en `AuthContext`.
-- El catálogo se carga con `GET /api/productos` dentro de un `useEffect`, con sus
-  estados de carga y de error.
+La sesión se conserva en `sessionStorage` para permitir recargas; cerrar sesión la elimina.
+Esta persistencia es para la demostración y no sustituye la autorización de un backend real.
+La confirmación viaja por `location.state`, muestra solo pedidos de la cuenta actual y
+no inventa una compra al entrar directamente. No hay historial permanente de pedidos.
+
+También se corrige la sincronización de categorías al usar Atrás/Adelante, el uso del
+lightbox con teclado, las etiquetas del formulario, los espacios en campos obligatorios,
+el cierre de sesión táctil y la cancelación del temporizador al abandonar el checkout.
+
+## Verificar
+
+Desde `frontend/Practica03_ComponentesLayout_React`:
+
+```powershell
+npm run lint
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+Las pruebas E2E levantan automáticamente ambos servidores cuando no están encendidos.
+Usan contextos de navegador aislados, por lo que no modifican el carrito de tu navegador.
+Son 9 pruebas que cubren API, roles, navegación, cálculos, compra, almacenamiento, accesibilidad
+básica del lightbox y diseño móvil. Los reportes de fallo quedan en `test-results/`.
+El lint permite los tres avisos de Fast Refresh de los contextos, como indica la guía.
+
+Desde `backend/multicatalogo-backend`:
+
+```powershell
+go build ./...
+go vet ./...
+```
+
+Consulta `VERIFICACION_TEMA5.md` para ver la correspondencia con los escenarios de entrega.

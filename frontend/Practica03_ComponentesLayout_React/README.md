@@ -1,39 +1,26 @@
 # MultiCatálogo — Frontend
 
-Interfaz del panel, hecha con React 19, TypeScript, Vite y Tailwind 4.
-Consume la API en Go que está en `../../backend/multicatalogo-backend`.
+React 19 + TypeScript + Vite + Tailwind CSS + React Router.
 
-## Correrlo
-
-```bash
-npm install
-npm run dev
+```powershell
+npm ci
+npm run dev -- --port 5173 --strictPort
 ```
 
-Queda en http://localhost:5173. El backend tiene que estar levantado en el
-puerto 3000, si no el login y el catálogo no van a responder.
+Abre <http://localhost:5173>. Para iniciar sesión debe estar corriendo el backend Go en el puerto 3000.
+`VITE_API_URL` permite cambiar su URL. El catálogo del Tema 5 usa mocks del frontend.
 
-La URL de la API se lee de `VITE_API_URL`; si no se define, se usa
-`http://localhost:3000`. El ejemplo está en `.env.example`.
-
-## Scripts
-
-| Comando           | Qué hace                                  |
-| ----------------- | ----------------------------------------- |
-| `npm run dev`     | Servidor de desarrollo con recarga en vivo |
-| `npm run build`   | Revisa los tipos y compila a `dist/`       |
-| `npm run preview` | Sirve lo que quedó en `dist/`              |
-| `npm run lint`    | Pasa ESLint sobre el proyecto              |
-
-## Organización
-
-```
-src/
-├── components/   Layout, Navbar, Sidebar, vistas y los iconos SVG
-├── context/      AuthContext, CartContext y SidebarContext
-└── services/     api.ts, donde están todas las llamadas fetch
+```powershell
+npm run lint
+npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
-El estado del menú lateral está en `SidebarContext` y no dentro del Sidebar,
-porque quien lo cambia es el botón Toggle que vive en el Navbar. El `Layout` lo
-lee del contexto y se lo pasa al `Sidebar` por la prop `isCollapsed`.
+- `src/components`: layout, navegación y vistas.
+- `src/context`: sesión, carrito por usuario y menú lateral.
+- `src/data`: productos, árbol de referidos, cálculos y tipo de pedido.
+- `src/services`: login real contra la API, servicio mock de productos y lectura segura del carrito.
+- `tests/flujos.spec.ts`: nueve pruebas de navegador con Playwright.
+
+Las instrucciones, cuentas de prueba y límites de la simulación están en el [README principal](../../README.md).
