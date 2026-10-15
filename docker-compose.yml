@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: multicatalogo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clase_local_2026}
+      POSTGRES_DB: multicatalogo
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/multicatalogo-backend/db/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U multicatalogo -d multicatalogo"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  redis:
+    image: redis:alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  backend:
+    build: ./backend/multicatalogo-backend
+    environment:
+      DATABASE_URL: postgres://multicatalogo:${POSTGRES_PASSWORD:-clase_local_2026}@db:5432/multicatalogo?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      TOKEN_SECRET: ${TOKEN_SECRET:-clave_local_solo_para_la_clase_cambiar_en_produccion}
+      APP_ORIGINS: ${APP_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+volumes:
+  postgres_data:

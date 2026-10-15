@@ -47,7 +47,7 @@ const Confirmacion = () => {
             </div>
             <div>
               <p className="text-slate-500">Fecha</p>
-              <p className="font-semibold text-slate-800">{pedido.fecha}</p>
+              <p className="font-semibold text-slate-800">{new Date(pedido.fecha).toLocaleString('es-EC')}</p>
             </div>
             <div>
               <p className="text-slate-500">Correo</p>

@@ -1,94 +1,88 @@
-// Declaramos que este es el paquete principal (main), es decir, el archivo ejecutable que inicia el programa.
 package main
 
 import (
-	// Importamos el framework principal Fiber.
+	"context"
+	"log/slog"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
-	// Importamos el middleware CORS para gestionar la seguridad entre distintos puertos/dominios.
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	// Importamos nuestro propio paquete de rutas para delegarle la configuración de los endpoints.
+	"multicatalogo-backend/cache"
+	"multicatalogo-backend/config"
+	"multicatalogo-backend/controllers"
+	"multicatalogo-backend/repository"
 	"multicatalogo-backend/routes"
+	"multicatalogo-backend/service"
+	"multicatalogo-backend/session"
 )
 
-// func main es el punto de entrada de la aplicación en Go. Todo comienza a ejecutarse aquí.
 func main() {
-	// Instanciamos una nueva aplicación de Fiber y la guardamos en la variable 'app'.
-	app := fiber.New()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	db, err := config.NewPostgres(ctx)
+	if err != nil {
+		slog.Error("PostgreSQL no disponible", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+	redisClient, err := config.NewRedis(ctx)
+	cancel()
+	if err != nil {
+		slog.Error("Redis no disponible", "error", err)
+		os.Exit(1)
+	}
+	defer redisClient.Close()
 
-	// Implementamos el middleware CORS a nivel global usando app.Use() para interceptar todas las peticiones entrantes.
+	secret := os.Getenv("TOKEN_SECRET")
+	if len(secret) < 32 {
+		slog.Error("TOKEN_SECRET debe tener al menos 32 caracteres")
+		os.Exit(1)
+	}
+	allowed := os.Getenv("APP_ORIGINS")
+	if allowed == "" {
+		allowed = "http://localhost:5173,http://127.0.0.1:5173"
+	}
+	app := fiber.New()
 	app.Use(cors.New(cors.Config{
-		// Orígenes permitidos: Vite en local y la IP de la red del laboratorio.
-		AllowOrigins: "http://localhost:5173, http://127.0.0.1:5173, http://172.17.82.108:5173",
-		// Métodos que el frontend puede usar (el login necesita POST).
-		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
-		// Declaramos de forma explícita qué cabeceras (Headers) se permitirán en la comunicación.
-		AllowHeaders: "Origin, Content-Type, Accept",
+		AllowOrigins:  strings.Join(strings.Split(allowed, ","), ","),
+		AllowMethods:  "GET,POST,OPTIONS",
+		AllowHeaders:  "Origin,Content-Type,Accept,Authorization",
+		ExposeHeaders: "X-Cache",
 	}))
 
-	// Llamamos a la función SetupRoutes de nuestro paquete 'routes', enviándole la instancia de nuestra 'app'.
-	routes.SetupRoutes(app)
+	services := service.App{DB: &repository.Postgres{DB: db}, Cache: cache.Redis{Client: redisClient}}
+	routes.SetupRoutes(app, controllers.API{Service: services, Tokens: session.Tokens{Secret: []byte(secret)}})
 
-	// Ponemos a la aplicación a escuchar peticiones en el puerto 3000 de la máquina local. (Bloquea el hilo de ejecución).
-	app.Listen(":3000")
+	stopWorker := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+		for {
+			ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+			services.RetryPending(ctx)
+			cancel()
+			select {
+			case <-ticker.C:
+			case <-stopWorker:
+				return
+			}
+		}
+	}()
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-signals
+		close(stopWorker)
+		if err := app.Shutdown(); err != nil {
+			slog.Error("apagado", "error", err)
+		}
+	}()
+	if err := app.Listen(":3000"); err != nil {
+		slog.Error("servidor", "error", err)
+		os.Exit(1)
+	}
 }
-
-
-
-
-
-// // main.go
-// package main
-
-// import (
-// 	"github.com/gofiber/fiber/v2"
-// 	"github.com/gofiber/fiber/v2/middleware/cors"
-// )
-
-// // Estructuras de datos
-// type LoginRequest struct {
-// 	Email    string `json:"email"`
-// 	Password string `json:"password"`
-// }
-
-// type Producto struct {
-// 	ID     int     `json:"id"`
-// 	Nombre string  `json:"nombre"`
-// 	Precio float64 `json:"precio"`
-// 	Img    string  `json:"img"`
-// }
-
-// func main() {
-// 	app := fiber.New()
-
-// 	// Middleware CORS para permitir peticiones desde React (Vite corre en el puerto 5173)
-// 	app.Use(cors.New(cors.Config{
-// 		AllowOrigins: "http://localhost:5173",
-// 		AllowHeaders: "Origin, Content-Type, Accept",
-// 	}))
-
-// 	// Endpoint para Login
-// 	app.Post("/api/login", func(c *fiber.Ctx) error {
-// 		var req LoginRequest
-// 		if err := c.BodyParser(&req); err != nil {
-// 			return c.Status(400).JSON(fiber.Map{"error": "Cuerpo de petición inválido"})
-// 		}
-
-// 		if req.Email == "admin@upse.edu.ec" && req.Password == "123456" {
-// 			return c.JSON(fiber.Map{"token": "fake-jwt-token-123", "email": req.Email})
-// 		}
-// 		return c.Status(401).JSON(fiber.Map{"error": "Credenciales incorrectas"})
-// 	})
-
-// 	// Endpoint para obtener Productos
-// 	app.Get("/api/productos", func(c *fiber.Ctx) error {
-// 		productos := []Producto{
-// 			{ID: 1, Nombre: "Serum Revitalizante", Precio: 45.00, Img: "https://picsum.photos/seed/serum/150"},
-// 			{ID: 2, Nombre: "Crema Hidratante Pro", Precio: 32.50, Img: "https://picsum.photos/seed/crema/150"},
-// 			{ID: 3, Nombre: "Tónico Purificante", Precio: 28.00, Img: "https://picsum.photos/seed/tonico/150"},
-// 			{ID: 4, Nombre: "Mascarilla Nocturna", Precio: 50.00, Img: "https://picsum.photos/seed/mascarilla/150"},
-// 		}
-// 		return c.JSON(productos)
-// 	})
-
-// 	app.Listen(":3000")
-// }

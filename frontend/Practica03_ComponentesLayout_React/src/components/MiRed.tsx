@@ -2,7 +2,8 @@
 // Red multinivel visual (Tema 5):
 // - Resumen: referidos activos, ventas de la red, comisiones del mes y nivel alcanzado
 // - Árbol jerárquico recursivo de referidos con comisión calculada por nivel
-import { redInicial, contarRed, sumarVentasRed, sumarComisiones, nivelAlcanzado, comisionDeReferido, TASA_COMISION, type Referido } from '../data/red';
+import { contarRed, sumarVentasRed, nivelAlcanzado, comisionDeReferido, TASA_COMISION, type Referido } from '../data/red';
+import { useRed } from '../hooks/useRed';
 
 // Colores y etiquetas por nivel para el árbol
 const NIVEL_ESTILO: Record<number, { badge: string; border: string; tasa: string }> = {
@@ -53,11 +54,14 @@ const NodoReferido = ({ nodo }: { nodo: Referido }) => {
 };
 
 const MiRed = () => {
+  const { red, loading, error } = useRed();
+  if (loading) return <p>Cargando red...</p>;
+  if (!red) return <p role="alert" className="text-red-700">{error || 'No se pudo cargar la red'}</p>;
   // KPIs derivados de los datos de la red (funciones puras en data/red.ts)
-  const referidosActivos = contarRed(redInicial);
-  const ventasRed = sumarVentasRed(redInicial);
-  const comisionesMes = sumarComisiones(redInicial);
-  const nivel = nivelAlcanzado(redInicial.hijos?.length ?? 0);
+  const referidosActivos = contarRed(red);
+  const ventasRed = sumarVentasRed(red);
+  const comisionesMes = red.saldo ?? 0;
+  const nivel = nivelAlcanzado(red.hijos?.length ?? 0);
 
   const resumen = [
     { etiqueta: "Referidos Activos", valor: referidosActivos.toString(), color: "text-indigo-600" },
@@ -91,10 +95,10 @@ const MiRed = () => {
         <div className="bg-slate-900 text-white rounded-lg p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center font-bold">
-              {redInicial.nombre.charAt(0)}
+              {red.nombre.charAt(0)}
             </div>
             <div>
-              <p className="font-semibold">{redInicial.nombre}</p>
+              <p className="font-semibold">{red.nombre}</p>
               <p className="text-xs text-slate-300">Nivel alcanzado: {nivel}</p>
             </div>
           </div>
@@ -104,7 +108,7 @@ const MiRed = () => {
         </div>
 
         <ul className="space-y-3">
-          {redInicial.hijos?.map((hijo) => (
+          {red.hijos?.map((hijo) => (
             <NodoReferido key={hijo.id} nodo={hijo} />
           ))}
         </ul>

@@ -1,16 +1,13 @@
-# MultiCatálogo — Práctica 03, Tema 5
+# MultiCatálogo — Tema 5 y Fases 3–4
 
-Proyecto académico con React 19, TypeScript, Vite, Tailwind CSS, React Router y API Go/Fiber.
-Implementa los ocho entregables de `Guia_Practica_Tema5_leccion.md`.
+Proyecto académico con React, TypeScript, Go/Fiber, PostgreSQL y Redis. El frontend del Tema 5 se amplió para cumplir los notebooks `Fase 3.ipynb` y `Fase 4.ipynb` de la carpeta de la materia.
 
 ## Ejecutar
 
-Requisitos: Node.js y npm compatibles con el `package-lock.json`, y Go según `backend/multicatalogo-backend/go.mod`.
-Desde la raíz del repositorio, abre dos terminales:
+Requisitos: Docker Desktop iniciado, Node.js y npm. Desde la raíz de este repositorio:
 
 ```powershell
-cd backend/multicatalogo-backend
-go run .
+docker compose up -d --build
 ```
 
 ```powershell
@@ -20,12 +17,26 @@ npm run dev -- --port 5173 --strictPort
 ```
 
 Abre <http://localhost:5173>. La API escucha en el puerto 3000.
+PostgreSQL se expone en `localhost:5433` porque el puerto 5432 ya está ocupado en este equipo; Redis usa `localhost:6379`. Dentro de Compose, el backend conecta con `db:5432` y `redis:6379`.
+El SQL de `backend/multicatalogo-backend/db/001_init.sql` se ejecuta al crear el volumen por primera vez. Las credenciales de clase están en ese archivo y la configuración de ejemplo en `.env.example`.
 Las carpetas `Unidad1_Frontend/Proyecto_base` y `Unidad2_Backend/multicatalogo-backend`
 que cita la guía corresponden aquí a las carpetas `frontend/...` y `backend/...` anteriores.
 
 La URL del login se configura con `VITE_API_URL` en el `.env` del frontend;
 por defecto es `http://localhost:3000`. Existe `.env.example`.
-Para usar otra IP, ajusta también los orígenes CORS en `backend/multicatalogo-backend/main.go`.
+Para usar otra IP, define `APP_ORIGINS` en un `.env` de la raíz y `VITE_API_URL` en el `.env` del frontend.
+
+## Fase 3 — Caché con Redis
+
+`GET /api/productos` consulta la clave `productos:all`; al faltar, lee los ocho productos de PostgreSQL y los guarda **5 minutos**. `GET /api/red` requiere un token y cachea el árbol de cada usuario en `red:tree:{email}` durante **10 minutos**. Las respuestas llevan `X-Cache: MISS` o `X-Cache: HIT` para ver el comportamiento en la pestaña Network.
+
+## Fase 4 — Compra transaccional
+
+`POST /api/checkout` recibe `cliente`, `metodoPago` e `items` (`id`, `cantidad`) con `Authorization: Bearer <token>`. El servidor calcula los precios desde PostgreSQL, bloquea el stock, inserta pedido e items y registra el trabajo de comisiones dentro de una transacción. Si un producto no existe o falta stock, hace rollback y devuelve HTTP 400. Si todo sale bien, confirma el pedido con HTTP 201, vacía el carrito en React y procesa las comisiones de los tres niveles en una goroutine. Los trabajos pendientes se reintentan al iniciar y cada 15 segundos; las claves afectadas de Redis se invalidan tras la compra y tras las comisiones.
+
+**Prueba rápida:** entra como `cliente@upse.edu.ec`, añade un producto, confirma la compra y entra como `admin@upse.edu.ec` al Dashboard. El saldo de comisiones aumenta. No se realizan cobros reales. Para consultar PostgreSQL: `docker compose exec db psql -U multicatalogo -d multicatalogo`.
+
+Los tokens van firmados con `TOKEN_SECRET`, y las contraseñas de demostración se guardan con bcrypt. El secreto y la contraseña por defecto de Compose son solo para ejecutar esta práctica en local.
 
 ## Cuentas de prueba
 
@@ -50,14 +61,10 @@ Para usar otra IP, ajusta también los orígenes CORS en `backend/multicatalogo-
 Dashboard y Mi Red son exclusivos del administrador. Ambos roles acceden al flujo de compra.
 Los valores iniciales son 7 referidos, $4.090 en ventas, $319,50 en comisiones y nivel Plata.
 
-Según el alcance del Tema 5:
+En la entrega original del Tema 5 (antes de estas fases):
 
-- El login llama a `POST /api/login`; el backend devuelve correo, rol y un token ficticio.
-- El frontend consume 8 productos mock mediante `services/productosService.ts`.
-- `GET /api/productos` conserva los 4 productos básicos del backend del tema anterior.
-- La red es un mock compartido en `data/red.ts`; los KPIs se calculan, no se escriben como cifras fijas en las vistas.
-- El checkout simula 1,2 segundos de procesamiento. No cobra dinero ni registra pedidos en una base de datos.
-- JWT real, PostgreSQL, pagos reales y gestión de referidos quedan fuera de esta práctica.
+- El frontend consumía productos y red simulados, y el checkout no guardaba pedidos. Las Fases 3 y 4 sustituyen esas partes por API, PostgreSQL y Redis.
+- Sigue siendo una simulación de pago: registra la compra académica, pero no cobra dinero.
 
 ## Persistencia y ajustes al ejemplo de la guía
 
@@ -65,10 +72,9 @@ El carrito se guarda en `localStorage` con la clave `multicatalogo_carrito_<emai
 `CartBoundary` remonta el contexto al cambiar de cuenta, evitando mezclar carritos.
 Los datos guardados se validan y los productos se reconstruyen desde el catálogo.
 
-La sesión se conserva en `sessionStorage` para permitir recargas; cerrar sesión la elimina.
-Esta persistencia es para la demostración y no sustituye la autorización de un backend real.
+La sesión se conserva en `sessionStorage` para permitir recargas; cerrar sesión la elimina. Las rutas de compra y red validan el token firmado en el backend.
 La confirmación viaja por `location.state`, muestra solo pedidos de la cuenta actual y
-no inventa una compra al entrar directamente. No hay historial permanente de pedidos.
+no inventa una compra al entrar directamente. Ahora el pedido sí queda en PostgreSQL; no se implementó todavía una pantalla de historial.
 
 También se corrige la sincronización de categorías al usar Atrás/Adelante, el uso del
 lightbox con teclado, las etiquetas del formulario, los espacios en campos obligatorios,
@@ -76,16 +82,15 @@ el cierre de sesión táctil y la cancelación del temporizador al abandonar el 
 
 ## Verificar
 
-Desde `frontend/Practica03_ComponentesLayout_React`:
+Primero levanta Compose. Desde `frontend/Practica03_ComponentesLayout_React`:
 
 ```powershell
 npm run lint
 npm run build
-npx playwright install chromium
 npm run test:e2e
 ```
 
-Las pruebas E2E levantan automáticamente ambos servidores cuando no están encendidos.
+Las pruebas E2E levantan Vite si hace falta y requieren el backend de Compose activo.
 Usan contextos de navegador aislados, por lo que no modifican el carrito de tu navegador.
 Son 9 pruebas que cubren API, roles, navegación, cálculos, compra, almacenamiento, accesibilidad
 básica del lightbox y diseño móvil. Los reportes de fallo quedan en `test-results/`.

@@ -15,15 +15,19 @@ const Storefront = () => {
   const { user } = useAuth();
   const [destacados, setDestacados] = useState<Producto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Consumimos el servicio de productos (mock que simula la API)
+    // Los destacados salen del mismo catálogo de la API.
     getProductos()
       .then((data) => {
         setDestacados(data.slice(0, 4)); // mostramos solo 4 destacados
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((cause: unknown) => {
+        setError(cause instanceof Error ? cause.message : 'No se pudieron cargar los destacados');
+        setLoading(false);
+      });
   }, []);
 
   return (
@@ -103,6 +107,8 @@ const Storefront = () => {
 
           {loading ? (
             <p className="text-center text-slate-500">Cargando destacados...</p>
+          ) : error ? (
+            <p role="alert" className="text-center text-red-700">{error}</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {destacados.map((prod) => (

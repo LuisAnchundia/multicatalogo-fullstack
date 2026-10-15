@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Producto } from '../data/productos';
 import { useAuth } from './AuthContext';
 import { leerCarrito } from '../services/cartStorage';
+import { getProductos } from '../services/productosService';
 
 // 1. Elemento del carrito: un producto + la cantidad seleccionada
 export interface CartItem extends Producto {
@@ -54,6 +55,21 @@ export const CartProvider = ({ children }: CartProviderProps) => {
 
   // Inicializamos el estado leyendo el carrito guardado del usuario actual
   const [cart, setCart] = useState<CartItem[]>(() => user ? leerCarrito(storageKey) : []);
+
+  // Revalida el carrito persistido con los datos actuales del catálogo.
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    getProductos().then(products => {
+      if (!active) return;
+      const byId = new Map(products.map(product => [product.id, product]));
+      setCart(current => current.flatMap(item => {
+        const product = byId.get(item.id);
+        return product ? [{ ...product, cantidad: item.cantidad }] : [];
+      }));
+    }).catch(() => { /* El carrito local sigue visible si falla la red. */ });
+    return () => { active = false; };
+  }, [storageKey, user]);
 
   // Persistimos el carrito del usuario en cada cambio (Tema 5: carrito persistente)
   useEffect(() => {

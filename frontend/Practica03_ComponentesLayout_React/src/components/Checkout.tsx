@@ -1,13 +1,14 @@
 // src/components/Checkout.tsx
-// Flujo de checkout simulado (Tema 5):
+// Flujo de checkout conectado a PostgreSQL (Fase 4):
 // - Formulario de envío con validación básica
 // - Resumen del pedido en tiempo real
-// - Simula el procesamiento del pago y redirige a /confirmacion
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+// - Solo confirma tras recibir el pedido persistido desde Go
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import type { PedidoConfirmado } from '../data/pedidos';
+import { checkoutRequest } from '../services/api';
 
 interface DatosEnvio {
   nombre: string;
@@ -23,11 +24,8 @@ const METODOS_PAGO = ["Tarjeta de crédito", "Transferencia bancaria", "Efectivo
 const Checkout = () => {
   const { cart, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { user, token } = useAuth();
   const [error, setError] = useState('');
-  // Abandonar la pantalla o cerrar sesión cancela el pedido pendiente.
-  useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current); }, []);
 
   const [datos, setDatos] = useState<DatosEnvio>({
     nombre: "",
@@ -55,9 +53,9 @@ const Checkout = () => {
     setDatos((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (timer.current !== null || !user) return;
+    if (procesando || !user || !token) return;
     if (Object.values(datos).some(valor => !valor.trim())) {
       setError('Completa todos los campos; no pueden contener solo espacios.');
       return;
@@ -69,26 +67,18 @@ const Checkout = () => {
     setError('');
     setProcesando(true);
 
-    // Simulamos el procesamiento del pago con un pequeño retraso
-    timer.current = setTimeout(() => {
-      const pedido: PedidoConfirmado = {
-        numero: `MC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-        usuarioEmail: user.email,
-        items: cart.map((item) => ({
-          nombre: item.nombre,
-          cantidad: item.cantidad,
-          precio: item.precio,
-        })),
-        total: totalPrice,
+    try {
+      const pedido: PedidoConfirmado = await checkoutRequest(token, {
         cliente: { nombre: datos.nombre.trim(), email: datos.email.trim(), ciudad: datos.ciudad.trim(), direccion: datos.direccion.trim(), telefono: datos.telefono.trim() },
         metodoPago: datos.metodoPago,
-        fecha: new Date().toLocaleString("es-EC"),
-      };
-
-      // Vaciamos el carrito y pasamos los datos del pedido a la confirmación
+        items: cart.map(({ id, cantidad }) => ({ id, cantidad })),
+      });
       clearCart();
       navigate("/confirmacion", { replace: true, state: { pedido } });
-    }, 1200);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo registrar el pedido');
+      setProcesando(false);
+    }
   };
 
   return (

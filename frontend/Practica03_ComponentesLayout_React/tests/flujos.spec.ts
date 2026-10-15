@@ -35,10 +35,12 @@ test('API: dos roles, credenciales incorrectas, JSON inválido y catálogo base'
   }
   expect((await request.post('http://localhost:3000/api/login', { data: { email: 'admin@upse.edu.ec', password: 'incorrecta' } })).status()).toBe(401);
   expect((await request.post('http://localhost:3000/api/login', { data: '{', headers: { 'Content-Type': 'application/json' } })).status()).toBe(400);
-  expect(await (await request.get('http://localhost:3000/api/productos')).json()).toHaveLength(4);
+  const p = await request.get('http://localhost:3000/api/productos');
+  expect(await p.json()).toHaveLength(8);
+  expect((await request.get('http://localhost:3000/api/productos')).headers()['x-cache']).toBe('HIT');
 });
 
-test('red: cálculos recursivos, límites de nivel y KPIs compartidos', async ({ page }) => {
+test('red: cálculos recursivos, límites de nivel y KPIs compartidos', async ({ page, request }) => {
   expect(contarRed(redInicial)).toBe(7);
   expect(sumarVentasRed(redInicial)).toBe(4090);
   expect(sumarComisiones(redInicial)).toBeCloseTo(319.5);
@@ -47,14 +49,19 @@ test('red: cálculos recursivos, límites de nivel y KPIs compartidos', async ({
   expect(contarRed(vacia)).toBe(0);
   expect(sumarVentasRed(vacia)).toBe(0);
   expect(sumarComisiones(vacia)).toBe(0);
+  const loginResponse = await request.post('http://localhost:3000/api/login', { data: { email: 'admin@upse.edu.ec', password: '123456' } });
+  const auth = await loginResponse.json();
+  const redResponse = await request.get('http://localhost:3000/api/red', { headers: { Authorization: `Bearer ${auth.token}` } });
+  const red = await redResponse.json();
+  const saldo = `$${red.saldo.toFixed(2)}`;
   await login(page, 'admin');
   await expect(page.getByRole('heading', { name: 'Resumen General' })).toBeVisible();
-  await expect(page.getByText('$319.50', { exact: true })).toBeVisible();
+  await expect(page.getByText(saldo, { exact: true })).toBeVisible();
   await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(4);
   await page.getByRole('link', { name: 'Mi Red', exact: true }).click();
   await expect(page.getByText('Diana Paz')).toBeVisible();
   await expect(page.getByText('Nivel 3 · 2 % comisión')).toBeVisible();
-  await expect(page.getByText('$319.50', { exact: true })).toBeVisible();
+  await expect(page.getByText(saldo, { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Tienda', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Conocer el Plan Multinivel' })).toBeVisible();
 });
@@ -147,10 +154,9 @@ test('checkout: validación, confirmación, carrito vacío y privacidad del pedi
   await page.getByLabel('Nombre completo').fill('Luis Prueba');
   await page.getByLabel('Transferencia bancaria', { exact: true }).check();
   await page.getByRole('button', { name: 'Confirmar Pedido' }).click();
-  await expect(page.getByRole('button', { name: 'Procesando pago...' })).toBeDisabled();
   await expect(page).toHaveURL('/confirmacion');
   await expect(page.getByRole('heading', { name: '¡Pedido confirmado!' })).toBeVisible();
-  await expect(page.getByText(/MC-[0-9A-F]{8}/)).toBeVisible();
+  await expect(page.getByText(/MC-[0-9A-F]{12}/)).toBeVisible();
   await expect(page.getByText('Método de pago: Transferencia bancaria')).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: '¡Pedido confirmado!' })).toBeVisible();
@@ -164,15 +170,18 @@ test('checkout: validación, confirmación, carrito vacío y privacidad del pedi
   await expect(page.getByText('No hay un pedido para mostrar')).toBeVisible();
 });
 
-test('abandonar un pago pendiente no vacía el carrito ni redirige', async ({ page }) => {
+test('pedido rechazado por producto inexistente conserva el carrito', async ({ page }) => {
   await login(page, 'cliente');
   await agregar(page, 1);
   await page.goto('/checkout');
   await envio(page);
+  await page.route('**/api/checkout', async route => {
+    const body = route.request().postDataJSON();
+    await route.continue({ postData: JSON.stringify({ ...body, items: [{ id: 99999, cantidad: 1 }] }) });
+  });
   await page.getByRole('button', { name: 'Confirmar Pedido' }).click();
-  await page.getByRole('link', { name: 'Catálogo', exact: true }).click();
-  await page.waitForTimeout(1400); // Supera deliberadamente el temporizador del pago simulado.
-  await expect(page).toHaveURL('/catalogo');
+  await expect(page.getByRole('alert')).toContainText('producto inexistente');
+  await expect(page).toHaveURL('/checkout');
   await page.getByRole('link', { name: 'Ver carrito' }).click();
   await expect(page.getByRole('heading', { name: 'Serum Revitalizante' })).toBeVisible();
 });

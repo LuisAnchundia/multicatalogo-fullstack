@@ -13,6 +13,7 @@ const Catalogo = () => {
   const { addToCart } = useCart();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState('');
 
   // Lectura del query string (?categoria=...) enviado desde el Storefront
   const [searchParams, setSearchParams] = useSearchParams();
@@ -23,13 +24,16 @@ const Catalogo = () => {
   const categoria = searchParams.get("categoria") ?? "Todas";
 
   useEffect(() => {
-    // Consumimos el servicio de productos (mock que simula la API)
+    // Consultamos el catálogo persistido en PostgreSQL por medio de Go.
     getProductos()
       .then((data) => {
         setProductos(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((cause: unknown) => {
+        setError(cause instanceof Error ? cause.message : 'No se pudo cargar el catálogo');
+        setLoading(false);
+      });
   }, []);
 
   // Filtrado con useMemo: solo se recalcula cuando cambian busqueda/categoria/productos
@@ -57,6 +61,7 @@ const Catalogo = () => {
   if (loading) {
     return <div className="text-center p-8">Cargando catálogo...</div>;
   }
+  if (error) return <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-700">{error}</p>;
 
   return (
     <div>
