@@ -55,3 +55,17 @@ export const IconLogout = ({ className = "w-5 h-5" }: IconProps) => (
     <path d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
   </svg>
 );
+
+export const IconEye = ({ className = "w-5 h-5" }: IconProps) => (
+  <svg {...base} className={className} aria-hidden="true">
+    <path d="M2.25 12s3.5-5.25 9.75-5.25 9.75 5.25 9.75 5.25-3.5 5.25-9.75 5.25S2.25 12 2.25 12Z" />
+    <circle cx="12" cy="12" r="2.5" />
+  </svg>
+);
+
+export const IconEyeOff = ({ className = "w-5 h-5" }: IconProps) => (
+  <svg {...base} className={className} aria-hidden="true">
+    <path d="M4.1 8.5C2.9 9.6 2.25 12 2.25 12s3.5 5.25 9.75 5.25c1.8 0 3.35-.43 4.65-1.08M8.2 6.95A11.6 11.6 0 0 1 12 6.75c6.25 0 9.75 5.25 9.75 5.25a14.1 14.1 0 0 1-2.2 2.45M3 3l18 18" />
+    <path d="M10 10a2.5 2.5 0 0 0 4 4" />
+  </svg>
+);

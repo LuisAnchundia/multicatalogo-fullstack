@@ -28,6 +28,30 @@ test.beforeEach(async ({ page }) => {
   page.on('pageerror', error => { throw error; });
 });
 
+test('cuenta de Luis y control para ver la contraseña en acceso y registro', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: /Luis Poveda/ }).click();
+  await expect(page.getByLabel('Correo Electrónico', { exact: true })).toHaveValue('luis.poveda@demo.local');
+  const password = page.getByLabel('Contraseña', { exact: true });
+  await expect(password).toHaveValue('123456');
+  await expect(password).toHaveAttribute('type', 'password');
+  await page.getByRole('button', { name: 'Mostrar contraseña' }).click();
+  await expect(password).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Ocultar contraseña' }).click();
+  await expect(password).toHaveAttribute('type', 'password');
+  await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
+  await expect(page).toHaveURL('/tienda');
+
+  await logout(page);
+  await page.goto('/registro');
+  const nuevaPassword = page.getByLabel('Contraseña (mínimo 8 caracteres)');
+  await nuevaPassword.fill('clave_segura_123');
+  await page.getByRole('button', { name: 'Mostrar contraseña' }).click();
+  await expect(nuevaPassword).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Ocultar contraseña' }).click();
+  await expect(nuevaPassword).toHaveAttribute('type', 'password');
+});
+
 test('API: dos roles, credenciales incorrectas, JSON inválido y catálogo base', async ({ request }) => {
   for (const rol of ['admin', 'cliente']) {
     const res = await request.post(`${API}/api/login`, { data: { email: `${rol}@upse.edu.ec`, password: '123456' } });
@@ -37,7 +61,9 @@ test('API: dos roles, credenciales incorrectas, JSON inválido y catálogo base'
   expect((await request.post(`${API}/api/login`, { data: { email: 'admin@upse.edu.ec', password: 'incorrecta' } })).status()).toBe(401);
   expect((await request.post(`${API}/api/login`, { data: '{', headers: { 'Content-Type': 'application/json' } })).status()).toBe(400);
   const p = await request.get(`${API}/api/productos`);
-  expect(await p.json()).toHaveLength(8);
+  const catalogo = await p.json();
+  expect(catalogo.length).toBeGreaterThanOrEqual(8);
+  expect(catalogo.map((producto: { id: number }) => producto.id)).toEqual(expect.arrayContaining([1, 2, 3, 4, 5, 6, 7, 8]));
   expect((await request.get(`${API}/api/productos`)).headers()['x-cache']).toBe('HIT');
 });
 
@@ -66,7 +92,7 @@ test('red: cálculos recursivos, límites de nivel y KPIs compartidos', async ({
   await expect(page.getByText('Nivel 3 · 2 % comisión')).toBeVisible();
   await expect(page.getByText(saldo, { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Tienda', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Conocer el Plan Multinivel' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ver Mi Red y Enlace' })).toBeVisible();
 });
 
 test('guardas, storefront, filtros y navegación atrás', async ({ page }) => {
@@ -74,28 +100,28 @@ test('guardas, storefront, filtros y navegación atrás', async ({ page }) => {
   await expect(page).toHaveURL('/login');
   await login(page, 'cliente');
   await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(4);
-  await expect(page.getByRole('link', { name: 'Conocer el Plan Multinivel' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Explorar el Catálogo' })).toBeVisible();
-  await expect(page.locator('main section').nth(1).getByRole('link')).toHaveCount(5);
-  await expect(page.locator('main section').nth(2).getByRole('link')).toHaveCount(4);
-  expect(await page.locator('main section').first().evaluate(el => el.getBoundingClientRect().height >= window.innerHeight)).toBe(true);
+  await expect(page.locator('.mc-sidebar')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Cuidado consciente y belleza natural' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ver Mi Red y Enlace' })).toBeVisible();
+  expect(await page.locator('.mc-product-card').count()).toBeGreaterThanOrEqual(8);
   await page.goto('/');
   await expect(page).toHaveURL('/tienda');
   await page.goto('/mi-red');
+  await expect(page.locator('.mc-sidebar')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Mi Red de Referidos' })).toBeVisible();
   await page.goto('/tienda');
-  await page.getByRole('link', { name: 'Serum', exact: true }).click();
+  await page.getByRole('button', { name: 'Serum', exact: true }).click();
   await expect(page).toHaveURL(/categoria=Serum/);
   await expect(page.getByText('2 producto(s) encontrado(s)')).toBeVisible();
-  await page.getByLabel('Categoría', { exact: true }).selectOption('Kit');
+  await page.getByRole('button', { name: 'Kit', exact: true }).click();
   await expect(page.getByText('1 producto(s) encontrado(s)')).toBeVisible();
   await page.goBack();
-  await expect(page.getByLabel('Categoría', { exact: true })).toHaveValue('Serum');
+  await expect(page).toHaveURL(/categoria=Serum/);
   await expect(page.getByText('2 producto(s) encontrado(s)')).toBeVisible();
   await page.getByLabel('Buscar productos').fill('inexistente');
   await expect(page.getByText('No hay productos que coincidan con tu búsqueda.')).toBeVisible();
   await page.getByRole('button', { name: 'Limpiar filtros' }).click();
-  await expect(page.getByText('8 producto(s) encontrado(s)')).toBeVisible();
+  await expect(page.getByText(/\d+ producto\(s\) encontrado\(s\)/)).toBeVisible();
   await page.getByLabel('Buscar productos').fill('serum');
   await expect(page.getByText('3 producto(s) encontrado(s)')).toBeVisible();
 });

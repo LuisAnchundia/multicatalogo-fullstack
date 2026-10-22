@@ -1,95 +1,48 @@
-import { NavLink } from "react-router-dom";
-import { IconDashboard, IconCatalogo, IconMiRed, IconCarrito } from "./Icons";
-import { useAuth } from "../context/AuthContext";
+import { NavLink } from 'react-router-dom';
+import { IconDashboard, IconCatalogo, IconMiRed, IconCarrito } from './Icons';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
-  isCollapsed: boolean; // true => 80px de ancho, solo iconos
-  isOpen: boolean;      // cajón abierto en móvil
+  isCollapsed: boolean;
+  isOpen: boolean;
   onClose: () => void;
+  adminView: boolean;
 }
 
-// Las opciones del menú se definen en un arreglo para no repetir el mismo JSX tres veces.
 const menu = [
-  { to: "/", label: "Dashboard", Icon: IconDashboard, soloAdmin: true },
-  { to: "/tienda", label: "Tienda", Icon: IconCarrito },
-  { to: "/catalogo", label: "Catálogo", Icon: IconCatalogo },
-  { to: "/mi-red", label: "Mi Red", Icon: IconMiRed },
-  { to: "/mis-pedidos", label: "Mis pedidos", Icon: IconCarrito },
-  { to: "/admin/productos", label: "Productos", Icon: IconCatalogo, soloAdmin: true },
-  { to: "/admin/usuarios", label: "Usuarios", Icon: IconDashboard, soloAdmin: true },
-  { to: "/admin/pedidos", label: "Pedidos", Icon: IconCarrito, soloAdmin: true },
-  { to: "/admin/liquidaciones", label: "Liquidaciones", Icon: IconMiRed, soloAdmin: true },
+  { to: '/', label: 'Dashboard', Icon: IconDashboard, soloAdmin: true },
+  { to: '/tienda', label: 'Tienda', Icon: IconCarrito },
+  { to: '/catalogo', label: 'Catálogo', Icon: IconCatalogo },
+  { to: '/mi-red', label: 'Mi Red', Icon: IconMiRed },
+  { to: '/mis-pedidos', label: 'Mis pedidos', Icon: IconCarrito },
+  { to: '/admin/productos', label: 'Productos', Icon: IconCatalogo, soloAdmin: true },
+  { to: '/admin/usuarios', label: 'Usuarios', Icon: IconDashboard, soloAdmin: true },
+  { to: '/admin/pedidos', label: 'Pedidos', Icon: IconCarrito, soloAdmin: true },
+  { to: '/admin/liquidaciones', label: 'Liquidaciones', Icon: IconMiRed, soloAdmin: true },
 ];
 
-const Sidebar = ({ isCollapsed, isOpen, onClose }: SidebarProps) => {
+export default function Sidebar({ isCollapsed, isOpen, onClose, adminView }: SidebarProps) {
   const { user } = useAuth();
-  return (
-    <>
-      {/* Fondo oscuro: aparece solo en móvil cuando el menú está abierto */}
-      {isOpen && (
-        <div
-          onClick={onClose}
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-        />
-      )}
-
-      {/* Menú lateral: cajón fijo en móvil, estático y siempre visible en escritorio.
-          En móvil mantiene los 256px para que el texto se lea; el colapso a 80px
-          solo aplica de md hacia arriba. */}
-      <aside
-        className={`fixed md:static top-0 left-0 z-40 h-dvh shrink-0 bg-slate-900 text-white flex flex-col
-          transform transition-all duration-300 w-64
-          ${isCollapsed ? "md:w-20" : "md:w-64"}
-          ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
-      >
-        {/* Cabecera: el nombre completo se reemplaza por las iniciales al colapsar */}
-        <div className="h-16 flex items-center border-b border-slate-700 px-6 md:px-0 md:justify-center">
-          <span
-            className={`text-2xl font-bold whitespace-nowrap ${
-              isCollapsed ? "md:hidden" : "md:block"
-            }`}
-          >
-            MultiCatálogo
-          </span>
-          <span
-            className={`text-2xl font-bold ${
-              isCollapsed ? "hidden md:block" : "hidden"
-            }`}
-          >
-            MC
-          </span>
-        </div>
-
-        <button onClick={onClose} className="md:hidden px-6 py-3 text-left">Cerrar menú</button>
-        <nav aria-label="Navegación principal" className="flex-1 p-4 space-y-2">
-          {menu.filter(item => !item.soloAdmin || user?.rol === 'admin').map(({ to, label, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              aria-label={label}
-              end={to === "/"}
-              onClick={onClose}
-              // Cuando está colapsado el title sirve de tooltip, porque el texto no se ve
-              title={isCollapsed ? label : undefined}
-              className={({ isActive }) =>
-                `flex items-center gap-4 p-3 rounded transition ${
-                  isCollapsed ? "md:justify-center md:gap-0" : ""
-                } ${isActive ? "bg-indigo-600" : "hover:bg-slate-800"}`
-              }
-            >
-              <Icon className="w-6 h-6 shrink-0" />
-              <span
-                className={`whitespace-nowrap ${isCollapsed ? "md:hidden" : ""}`}
-              >
-                {label}
-              </span>
-            </NavLink>
-          ))}
-        </nav>
-        <p className="p-4 text-center text-xs uppercase text-slate-300">{user?.rol}</p>
-      </aside>
-    </>
-  );
-};
-
-export default Sidebar;
+  return <>
+    {isOpen && <button type="button" aria-label="Cerrar menú" className="mc-drawer-backdrop" onClick={onClose} />}
+    <aside className={`mc-sidebar ${adminView ? 'mc-sidebar-admin' : 'mc-sidebar-store'} ${isCollapsed ? 'mc-sidebar-collapsed' : ''} ${isOpen ? 'mc-sidebar-open' : ''}`}>
+      <div className="mc-sidebar-brand">
+        <span className="mc-brand-mark" aria-hidden="true">✦</span>
+        <span className="mc-sidebar-brand-text">MultiCatálogo <small>{adminView ? 'Admin Hub' : 'Tienda y red'}</small></span>
+      </div>
+      <button type="button" onClick={onClose} className="mc-sidebar-close">Cerrar menú ×</button>
+      <nav aria-label="Navegación principal" className="mc-sidebar-nav">
+        {menu.filter(item => !item.soloAdmin || user?.rol === 'admin').map(({ to, label, Icon }) => <NavLink
+          key={to} to={to} end={to === '/'} aria-label={label} onClick={onClose} title={isCollapsed ? label : undefined}
+          className={({ isActive }) => `mc-sidebar-link ${isActive ? 'is-active' : ''}`}>
+          <Icon className="mc-sidebar-icon" />
+          <span className="mc-sidebar-label">{label}</span>
+        </NavLink>)}
+      </nav>
+      <div className="mc-sidebar-bottom">
+        <span className="mc-sidebar-role">{user?.rol === 'admin' ? 'Administrador' : 'Mi cuenta'}</span>
+        {adminView && <NavLink to="/tienda" onClick={onClose} className="mc-sidebar-store-link">↗ <span className="mc-sidebar-label">Volver a la tienda</span></NavLink>}
+      </div>
+    </aside>
+  </>;
+}

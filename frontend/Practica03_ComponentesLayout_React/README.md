@@ -21,6 +21,6 @@ npm run test:e2e
 - `src/context`: sesión, carrito por usuario y menú lateral.
 - `src/data`: tipos, categorías y datos de referencia para restaurar carritos anteriores.
 - `src/services`: login, catálogo, red y checkout contra la API; lectura segura del carrito.
-- `tests/flujos.spec.ts`: nueve pruebas de navegador con Playwright.
+- `tests/flujos.spec.ts`: diez pruebas de navegador con Playwright; las 13 pruebas E2E incluyen también back-office y mejoras de red.
 
 Las instrucciones, cuentas de prueba y límites de la simulación están en el [README principal](../../README.md).

@@ -1,156 +1,64 @@
-// src/components/Catalogo.tsx
-// Catálogo interactivo con búsqueda y filtros (Tema 5):
-// - useMemo para filtrar la lista sin recalcular en cada render
-// - Estado de carga y estado vacío
-// - Tarjetas enlazadas al detalle /producto/:id
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getProductos } from '../services/productosService';
-import { categorias, type Producto } from '../data/productos';
+import type { Producto } from '../data/productos';
 
-const Catalogo = () => {
+export default function Catalogo({ storefront = false }: { storefront?: boolean }) {
   const { addToCart } = useCart();
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  // Lectura del query string (?categoria=...) enviado desde el Storefront
+  const [sort, setSort] = useState('relevancia');
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // Estado de los filtros
-  const [busqueda, setBusqueda] = useState<string>("");
-  // La URL es la fuente de verdad, también al navegar Atrás / Adelante.
-  const categoria = searchParams.get("categoria") ?? "Todas";
+  const categoria = searchParams.get('categoria') ?? 'Todas';
+  const busqueda = searchParams.get('buscar') ?? '';
 
   useEffect(() => {
-    // Consultamos el catálogo persistido en PostgreSQL por medio de Go.
-    getProductos()
-      .then((data) => {
-        setProductos(data);
-        setLoading(false);
-      })
-      .catch((cause: unknown) => {
-        setError(cause instanceof Error ? cause.message : 'No se pudo cargar el catálogo');
-        setLoading(false);
-      });
+    let active = true;
+    getProductos().then(data => { if (active) { setProductos(data); setLoading(false); } })
+      .catch((cause: unknown) => { if (active) { setError(cause instanceof Error ? cause.message : 'No se pudo cargar el catálogo'); setLoading(false); } });
+    return () => { active = false; };
   }, []);
 
-  // Filtrado con useMemo: solo se recalcula cuando cambian busqueda/categoria/productos
+  const categoriasDisponibles = useMemo(() => Array.from(new Set(productos.map(item => item.categoria))), [productos]);
   const productosFiltrados = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase();
-    return productos.filter((prod) => {
-      const coincideCategoria = categoria === "Todas" || prod.categoria === categoria;
-      const coincideTexto =
-        texto === "" ||
-        prod.nombre.toLowerCase().includes(texto) ||
-        prod.descripcion.toLowerCase().includes(texto);
-      return coincideCategoria && coincideTexto;
-    });
-  }, [productos, busqueda, categoria]);
+    const texto = busqueda.trim().toLocaleLowerCase('es');
+    const lista = productos.filter(item => (categoria === 'Todas' || item.categoria === categoria) &&
+      (!texto || `${item.nombre} ${item.descripcion}`.toLocaleLowerCase('es').includes(texto)));
+    if (sort === 'precio-asc') return lista.sort((a, b) => a.precio - b.precio);
+    if (sort === 'precio-desc') return lista.sort((a, b) => b.precio - a.precio);
+    if (sort === 'nombre') return lista.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    return lista;
+  }, [productos, categoria, busqueda, sort]);
 
-  const handleCategoriaChange = (value: string) => {
-    // Sincronizamos el query string para que la URL sea compartible
-    if (value === "Todas") {
-      setSearchParams({});
-    } else {
-      setSearchParams({ categoria: value });
-    }
-  };
-
-  if (loading) {
-    return <div className="text-center p-8">Cargando catálogo...</div>;
+  function cambiarParametro(clave: 'categoria' | 'buscar', valor: string) {
+    const siguiente = new URLSearchParams(searchParams);
+    if (!valor || valor === 'Todas') siguiente.delete(clave); else siguiente.set(clave, valor);
+    setSearchParams(siguiente, { replace: clave === 'buscar' });
   }
-  if (error) return <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-700">{error}</p>;
 
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-800 mb-2">Catálogo de Productos</h1>
-      <p className="text-slate-500 mb-6">
-        {productosFiltrados.length} producto(s) encontrado(s)
-      </p>
+  return <div className="mc-store-page">
+    <div className="mc-store-content">
+      <section className="mc-soft-banner mc-store-hero">
+        <div><span className="mc-kicker">Cosmética · bienestar · comunidad</span><h1 className="mc-serif">{storefront ? 'Cuidado consciente y belleza natural' : 'Catálogo de Productos'}</h1><p>{storefront ? 'Descubre productos para tu rutina y comparte tus favoritos con tu red. Belleza que se comparte, oportunidades que crecen.' : 'Explora la colección y encuentra lo que mejor se adapta a tu rutina.'}</p></div>
+        <div className="mc-hero-trust"><span><b aria-hidden="true">✧</b><strong>Compra sencilla</strong><small>Desde cualquier lugar</small></span><span><b aria-hidden="true">◇</b><strong>Comparte tu red</strong><small>Consulta tus comisiones</small></span></div>
+      </section>
 
-      {/* ===== BARRA DE BÚSQUEDA Y FILTROS ===== */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8">
-        <input
-          type="text"
-          aria-label="Buscar productos"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre o descripción..."
-          className="flex-1 px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition"
-        />
-        <select
-          aria-label="Categoría"
-          value={categoria}
-          onChange={(e) => handleCategoriaChange(e.target.value)}
-          className="px-4 py-3 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition"
-        >
-          <option value="Todas">Todas las categorías</option>
-          {categorias.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
-      </div>
+      {loading ? <p role="status" className="mc-card mc-message">Cargando catálogo...</p> : error ? <p role="alert" className="mc-card mc-message text-red-700">{error}</p> : <>
+        <section className="mc-catalog-toolbar" aria-label="Filtros de productos">
+          <div className="mc-catalog-toolbar-top"><div className="mc-search-field"><span aria-hidden="true">⌕</span><input type="search" aria-label="Buscar productos" placeholder="Buscar sérums, cremas, kits..." value={busqueda} onChange={e => cambiarParametro('buscar', e.target.value)} /></div><div className="mc-catalog-sort"><span>{productosFiltrados.length} producto(s) encontrado(s)</span><label>Ordenar por: <select aria-label="Ordenar productos" value={sort} onChange={e => setSort(e.target.value)}><option value="relevancia">Relevancia</option><option value="precio-asc">Menor precio</option><option value="precio-desc">Mayor precio</option><option value="nombre">Nombre A-Z</option></select></label></div></div>
+          <div className="mc-category-pills" role="group" aria-label="Filtrar por categoría"><button type="button" onClick={() => cambiarParametro('categoria', 'Todas')} className={categoria === 'Todas' ? 'is-active' : ''}>Todas</button>{categoriasDisponibles.map(cat => <button type="button" key={cat} onClick={() => cambiarParametro('categoria', cat)} className={categoria === cat ? 'is-active' : ''}>{cat}</button>)}</div>
+          <select className="mc-category-select mc-field" aria-label="Categoría" value={categoria} onChange={e => cambiarParametro('categoria', e.target.value)}><option value="Todas">Todas las categorías</option>{categoriasDisponibles.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
+        </section>
 
-      {/* ===== GRILLA DE PRODUCTOS ===== */}
-      {productosFiltrados.length === 0 ? (
-        <div className="bg-white p-10 rounded-lg border border-slate-200 text-center">
-          <p className="text-slate-500">
-            No hay productos que coincidan con tu búsqueda.
-          </p>
-          <button
-            onClick={() => {
-              setBusqueda("");
-              setSearchParams({});
-            }}
-            className="mt-4 text-indigo-600 font-semibold hover:underline"
-          >
-            Limpiar filtros
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {productosFiltrados.map((prod) => (
-            <div
-              key={prod.id}
-              className="bg-white rounded-lg overflow-hidden border border-slate-200 shadow-sm flex flex-col"
-            >
-              <Link to={`/producto/${prod.id}`}>
-                <img
-                  src={prod.img}
-                  alt={prod.nombre}
-                  className="w-full h-40 object-cover hover:opacity-90 transition"
-                />
-              </Link>
-              <div className="p-4 flex flex-col flex-1">
-                <p className="text-xs uppercase tracking-wide text-indigo-500 font-semibold">
-                  {prod.categoria}
-                </p>
-                <Link to={`/producto/${prod.id}`}>
-                  <h3 className="font-semibold text-slate-700 hover:text-indigo-600 transition">
-                    {prod.nombre}
-                  </h3>
-                </Link>
-                <p className="text-indigo-600 font-bold mt-2 mb-4">
-                  ${prod.precio.toFixed(2)}
-                </p>
+        {productosFiltrados.length ? <section className="mc-product-grid" aria-label="Productos">{productosFiltrados.map(prod => <article className="mc-product-card" key={prod.id}>
+          <Link to={`/producto/${prod.id}`} className="mc-product-media"><img src={prod.img} alt={prod.nombre} loading="lazy" /></Link>
+          <div className="mc-product-copy"><span className="mc-product-category">{prod.categoria}</span><Link to={`/producto/${prod.id}`}><h2>{prod.nombre}</h2></Link><p>{prod.descripcion}</p><div className="mc-product-bottom"><span><small>Precio público</small><strong>${prod.precio.toFixed(2)}</strong></span><button type="button" aria-label={`Añadir ${prod.nombre} al carrito`} onClick={() => addToCart(prod)}>＋ Añadir</button></div></div>
+        </article>)}</section> : <div className="mc-card mc-catalog-empty"><p>No hay productos que coincidan con tu búsqueda.</p><button type="button" className="mc-btn mc-btn-soft" onClick={() => setSearchParams({})}>Limpiar filtros</button></div>}
+      </>}
 
-                <button
-                  onClick={() => addToCart(prod)}
-                  className="mt-auto w-full bg-slate-900 text-white py-2 rounded text-sm hover:bg-indigo-600 transition"
-                >
-                  Añadir al Carrito
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <section className="mc-soft-banner mc-referral-banner"><div><span className="mc-kicker">Tu red de referidos</span><h2 className="mc-serif">Comparte lo que te gusta y haz crecer tu red</h2><p>Consulta tus referidos, revisa las comisiones registradas y copia tu enlace personal para invitar a alguien.</p></div><Link to="/mi-red" className="mc-btn mc-btn-primary">Ver Mi Red y Enlace →</Link></section>
     </div>
-  );
-};
-
-export default Catalogo;
+  </div>;
+}

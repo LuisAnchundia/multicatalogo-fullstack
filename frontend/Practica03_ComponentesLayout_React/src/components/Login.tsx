@@ -2,16 +2,38 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginRequest } from '../services/api';
+import { IconEye, IconEyeOff } from './Icons';
+
+const cuentasPrincipales = [
+  { nombre: 'Administrador', email: 'admin@upse.edu.ec' },
+  { nombre: 'Ana García · cliente', email: 'cliente@upse.edu.ec' },
+  { nombre: 'Luis Poveda · cliente', email: 'luis.poveda@demo.local' },
+];
+
+const otrasCuentas = [
+  { nombre: 'Marta Sánchez', email: 'marta.sanchez@demo.local' },
+  { nombre: 'Carlos Ruiz', email: 'carlos.ruiz@demo.local' },
+  { nombre: 'Sofía León', email: 'sofia.leon@demo.local' },
+  { nombre: 'Marco Díaz', email: 'marco.diaz@demo.local' },
+  { nombre: 'Diana Paz', email: 'diana.paz@demo.local' },
+];
 
 const Login = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [mostrarPassword, setMostrarPassword] = useState(false);
   const [error, setError] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
 
   const navigate = useNavigate();
   const { login, user } = useAuth();
   if (user) return <Navigate to={user.rol === 'admin' ? '/' : '/tienda'} replace />;
+
+  const usarCuenta = (correo: string) => {
+    setEmail(correo);
+    setPassword('123456');
+    setError('');
+  };
 
   // Ahora la validación la hace el backend en POST /api/login
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -37,9 +59,9 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-md p-6 sm:p-8 border border-slate-200">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-md p-6 sm:p-8 border border-slate-200 my-6">
         <div className="text-center mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">MultiCatálogo</h2>
+          <h1 className="mc-serif text-2xl sm:text-3xl font-bold text-indigo-700">MultiCatálogo</h1>
           <p className="text-slate-500 mt-2">Ingresa a tu cuenta para continuar</p>
         </div>
 
@@ -59,7 +81,7 @@ const Login = () => {
               id="login-email"
               autoComplete="username"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setError(''); }}
               className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition"
               placeholder="admin@upse.edu.ec"
               required
@@ -70,16 +92,21 @@ const Login = () => {
             <label htmlFor="login-password" className="block text-sm font-medium text-slate-700 mb-2">
               Contraseña
             </label>
-            <input
-              type="password"
-              id="login-password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition"
-              placeholder="••••••"
-              required
-            />
+            <div className="relative">
+              <input
+                type={mostrarPassword ? 'text' : 'password'}
+                id="login-password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                className="w-full px-4 py-3 pr-14 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition"
+                placeholder="••••••"
+                required
+              />
+              <button type="button" aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={mostrarPassword} onClick={() => setMostrarPassword(value => !value)} className="absolute right-2 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-indigo-700">
+                {mostrarPassword ? <IconEyeOff /> : <IconEye />}
+              </button>
+            </div>
           </div>
 
           <button
@@ -91,10 +118,18 @@ const Login = () => {
           </button>
         </form>
         <p className="mt-4 text-center"><Link className="text-indigo-700 underline" to="/registro">Crear cuenta</Link></p>
-        <div className="mt-6 rounded-lg bg-slate-50 p-4 text-xs text-slate-600 space-y-1">
-          <p className="font-semibold">Cuentas de prueba · contraseña: 123456</p>
-          <p>Admin: admin@upse.edu.ec</p>
-          <p>Cliente: cliente@upse.edu.ec</p>
+        <div className="mt-6 rounded-lg bg-emerald-50 p-4 text-xs text-slate-700 space-y-3">
+          <div><p className="font-semibold">Cuentas de prueba · contraseña: <span className="font-mono">123456</span></p><p className="mt-1 text-slate-500">Pulsa una cuenta para rellenar los campos.</p></div>
+          <div className="grid gap-1.5">
+            {cuentasPrincipales.map(cuenta => <button key={cuenta.email} type="button" onClick={() => usarCuenta(cuenta.email)} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50">
+              <span className="block font-semibold">{cuenta.nombre}</span><span className="block text-slate-600">{cuenta.email}</span>
+            </button>)}
+          </div>
+          <details><summary className="cursor-pointer font-semibold text-indigo-700">Ver otras 5 cuentas de prueba</summary><div className="mt-2 grid gap-1.5">
+            {otrasCuentas.map(cuenta => <button key={cuenta.email} type="button" onClick={() => usarCuenta(cuenta.email)} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50">
+              <span className="block font-semibold">{cuenta.nombre}</span><span className="block text-slate-600">{cuenta.email}</span>
+            </button>)}
+          </div></details>
         </div>
       </div>
     </div>

@@ -1,26 +1,25 @@
-import { Outlet, useLocation } from "react-router-dom";
-import Sidebar from "./Sidebar";
-import Navbar from "./Navbar";
-import { useSidebar } from "../context/SidebarContext";
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import Sidebar from './Sidebar';
+import Navbar from './Navbar';
+import { useSidebar } from '../context/SidebarContext';
 
-const Layout = () => {
+export default function Layout() {
   const { pathname } = useLocation();
-  // El estado vive en el contexto para que el Navbar también pueda modificarlo
   const { isCollapsed, isOpen, closeSidebar } = useSidebar();
+  const adminView = pathname === '/' || pathname.startsWith('/admin/');
 
-  return (
-    <div className="flex h-dvh bg-slate-50">
-      <Sidebar isCollapsed={isCollapsed} isOpen={isOpen} onClose={closeSidebar} />
-
-      {/* Área de Contenido Principal */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <Navbar />
-        <main key={pathname} id="contenido" className={`flex-1 min-w-0 overflow-y-auto ${pathname === '/tienda' ? '' : 'p-4 md:p-8'}`}>
-          <Outlet />
-        </main>
-      </div>
+  return <div className={`mc-layout ${adminView ? 'mc-layout-admin' : 'mc-layout-store'}`}>
+    <Sidebar isCollapsed={isCollapsed} isOpen={isOpen} onClose={closeSidebar} adminView={adminView} />
+    <div className="mc-layout-body">
+      <Navbar adminView={adminView} />
+      <main key={pathname} id="contenido" className={`mc-main ${adminView ? 'mc-main-admin' : 'mc-main-store'}`}>
+        <Outlet />
+        {!adminView && <footer className="mc-footer">
+          <Link to="/tienda" className="mc-footer-brand">MultiCatálogo</Link>
+          <span>Cosmética y una comunidad que crece contigo.</span>
+          <Link to="/mi-red">Mi red de referidos →</Link>
+        </footer>}
+      </main>
     </div>
-  );
-};
-
-export default Layout;
+  </div>;
+}

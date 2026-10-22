@@ -40,6 +40,8 @@ Para usar otra IP, define `APP_ORIGINS` en un `.env` de la raíz y `VITE_API_URL
 
 En `/mi-red`, las ramas se despliegan por persona y se puede filtrar por nombre, nivel y ventas mínimas. Las comisiones registradas se muestran por mes (últimos seis meses) y se pueden descargar como CSV. El gráfico no inventa datos del saldo inicial de demostración. El árbol sigue llegando completo desde la API hasta tres niveles; la expansión ocurre en el navegador.
 
+El diseño actual usa una barra lateral persistente en las pantallas internas de escritorio y un menú desplegable en móvil. Dashboard, tienda, catálogo, Mi Red y detalle de producto comparten la misma paleta y componentes visuales. Las imágenes locales sustituyen las fotos aleatorias de los ocho productos iniciales sin modificar las URLs que configure un administrador. El acceso muestra las cuentas de clase y permite ver u ocultar la contraseña.
+
 El alcance detallado y el estado de verificación están en `ANALISIS_FUNCIONAL_U2.md` y `PLAN_IMPLEMENTACION_U2.md`.
 
 **Prueba rápida:** entra como `cliente@upse.edu.ec`, añade un producto, confirma la compra y entra como `admin@upse.edu.ec` al Dashboard. El saldo de comisiones aumenta. No se realizan cobros reales. Para consultar PostgreSQL: `docker compose exec db psql -U multicatalogo -d multicatalogo`.
@@ -52,22 +54,25 @@ Los tokens van firmados con `TOKEN_SECRET`, y las contraseñas de demostración 
 |---|---|---|---|
 | Admin | admin@upse.edu.ec | 123456 | Dashboard (`/`) |
 | Cliente | cliente@upse.edu.ec | 123456 | Tienda (`/tienda`) |
+| Cliente | luis.poveda@demo.local | 123456 | Tienda (`/tienda`) |
 
 ## Funciones y alcance
 
 | Entregable | Implementación |
 |---|---|
-| F1 | `/tienda`: hero de pantalla completa, 5 categorías y 4 destacados |
+| F1 | `/tienda`: presentación, filtros por categoría y catálogo conectado a la API |
 | F2 | `/producto/:id`: detalle y estado de producto inexistente |
 | F3 | `/catalogo`: búsqueda por nombre/descripción y filtro en la URL |
 | F4 | Galería de 4 imágenes, lightbox modal, foco, Escape y flechas |
 | F5 | Carrito por cuenta, cantidades, checkout validado y confirmación |
 | F6 | `/mi-red`: árbol recursivo, tres niveles y comisiones |
 | F7 | `/`: resumen de ventas y comisiones desde reportes SQL |
-| F8 | Login por API, rutas y navegación por rol |
+| F8 | Login por API, cuentas de prueba seleccionables, contraseña visible y navegación por rol |
 
 El Dashboard y el back-office son exclusivos del administrador. Ambos roles pueden consultar su propia red, sus pedidos y el flujo de compra.
 El seed contiene 7 referidos y un saldo inicial demostrativo de $319,50 para el administrador.
+
+La aplicación todavía no incluye manifiesto PWA ni service worker, y la instalación desde un enlace público queda para la siguiente etapa. Antes de desplegarla también hay que alojar la API Go, PostgreSQL y Redis, configurar `VITE_API_URL` y `APP_ORIGINS` para las URLs HTTPS, y reemplazar los secretos y las cuentas de demostración.
 
 En la entrega original del Tema 5 (antes de estas fases):
 
@@ -98,9 +103,9 @@ npm run build
 npm run test:e2e
 ```
 
-Las pruebas E2E levantan Vite si hace falta y requieren la API activa. Crean pedidos, productos y usuarios de prueba: conviene ejecutarlas contra una base separada. Se puede cambiar la API mediante `VITE_API_URL` para el navegador y `API_URL` para las peticiones directas de Playwright.
+Las pruebas E2E levantan Vite si hace falta y requieren la API activa. Crean pedidos de prueba; los productos y usuarios temporales de las pruebas de back-office se desactivan al terminar. Conviene ejecutarlas contra una base separada. Se puede cambiar la API mediante `VITE_API_URL` para el navegador y `API_URL` para las peticiones directas de Playwright.
 Usan contextos de navegador aislados, por lo que no modifican el carrito de tu navegador.
-Son 12 pruebas que cubren API, roles, navegación, registro, administración, cálculos, compra, almacenamiento, árbol desplegable, filtros, exportación CSV, accesibilidad
+Son 13 pruebas que cubren API, roles, navegación, registro, administración, cálculos, compra, almacenamiento, árbol desplegable, filtros, exportación CSV, acceso con la cuenta de Luis, visibilidad de contraseña, accesibilidad
 básica del lightbox y diseño móvil. Los reportes de fallo quedan en `test-results/`.
 El lint permite los tres avisos de Fast Refresh de los contextos, como indica la guía.
 `tests/backoffice_smoke.py` prueba el back-office contra una API local en el puerto 3001 conectada a una base descartable.
