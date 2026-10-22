@@ -80,7 +80,7 @@ Para desplegar: conecta este repositorio de GitHub en **Render → New → Bluep
 
 Render suspende el backend gratuito tras 15 minutos sin tráfico y el primer acceso puede tardar alrededor de un minuto. Abre el enlace unos minutos antes de la exposición. Su PostgreSQL gratuito vence después de 30 días; haz la demostración antes de esa fecha.
 
-La web incluye manifiesto PWA, iconos de 192 y 512 píxeles y service worker que guarda la interfaz y las imágenes visitadas. Las operaciones de la API requieren conexión. El botón **Instalar app** abre la instalación cuando el navegador la ofrece; si no aparece el aviso, muestra las instrucciones para Chrome, Edge y Safari en iPhone. La instalación requiere abrir el enlace HTTPS público (o `localhost` para desarrollo).
+La web incluye manifiesto PWA, iconos de 192 y 512 píxeles y service worker que guarda la interfaz y las imágenes visitadas. Las operaciones de la API requieren conexión. El botón **Instalar app** abre la instalación cuando el navegador la ofrece. Si no hay un aviso disponible, aparece **¿Cómo instalar?** con instrucciones para instalarla o encontrarla si ya está en el equipo. Una PWA ya instalada no vuelve a mostrar el aviso en el mismo perfil del navegador; para repetir la prueba hay que desinstalarla desde `brave://apps`, `chrome://apps` o `edge://apps` y recargar la página. La instalación requiere abrir el enlace HTTPS público (o `localhost` para desarrollo).
 
 En la entrega original del Tema 5 (antes de estas fases):
 
