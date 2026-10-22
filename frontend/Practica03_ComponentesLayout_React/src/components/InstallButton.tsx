@@ -51,11 +51,9 @@ export default function InstallButton() {
       {prompt ? 'Instalar app' : '¿Cómo instalar?'}
     </button>
     {showHelp && <div role="dialog" aria-label="Cómo instalar MultiCatálogo" className="mc-install-help">
-      <strong>Instalar o abrir MultiCatálogo</strong>
-      <p>Si ya la instalaste, ábrela desde el menú Inicio de Windows o búscala en la página de apps de tu navegador: <code>brave://apps</code>, <code>chrome://apps</code> o <code>edge://apps</code>. Mientras siga instalada en ese perfil, no aparecerá otro aviso de instalación.</p>
-      <p>Si aún no está instalada, busca «Instalar aplicación» en el menú del navegador. En iPhone, usa Safari: Compartir → «Añadir a pantalla de inicio».</p>
-      <p>Para repetir la prueba, desinstálala desde la página de apps del navegador y recarga esta web.</p>
-      <button type="button" onClick={() => setShowHelp(false)}>Cerrar</button>
+      <strong>Instala MultiCatálogo</strong>
+      <p>En Chrome o Edge, abre el menú del navegador y elige «Instalar aplicación». En iPhone, abre Safari, toca Compartir y luego «Añadir a pantalla de inicio».</p>
+      <button type="button" onClick={() => setShowHelp(false)}>Entendido</button>
     </div>}
   </div>;
 }

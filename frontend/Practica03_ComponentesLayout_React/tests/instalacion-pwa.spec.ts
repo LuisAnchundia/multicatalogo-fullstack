@@ -1,15 +1,15 @@
 import { expect, test } from '@playwright/test';
 
-test('explica qué hacer cuando el navegador no ofrece instalar otra vez', async ({ page }) => {
+test('muestra la ayuda breve cuando no hay aviso de instalación', async ({ page }) => {
   await page.goto('/login');
 
   await page.getByRole('button', { name: '¿Cómo instalar?' }).click();
   const ayuda = page.getByRole('dialog', { name: 'Cómo instalar MultiCatálogo' });
   await expect(ayuda).toBeVisible();
-  await expect(ayuda).toContainText('brave://apps');
-  await expect(ayuda).toContainText('Mientras siga instalada');
+  await expect(ayuda).toContainText('Instala MultiCatálogo');
+  await expect(ayuda).toContainText('En Chrome o Edge');
 
-  await ayuda.getByRole('button', { name: 'Cerrar' }).click();
+  await ayuda.getByRole('button', { name: 'Entendido' }).click();
   await expect(ayuda).toBeHidden();
 });
 
