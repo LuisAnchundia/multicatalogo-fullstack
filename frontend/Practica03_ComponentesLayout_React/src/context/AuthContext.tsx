@@ -14,8 +14,7 @@ interface AuthContextType {
 const SESSION_KEY = 'multicatalogo_sesion';
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Conserva la sesión al recargar esta pestaña. Los tokens de la API son ficticios;
-// la autenticación real con JWT corresponde a la siguiente unidad.
+// Conserva la sesión al recargar esta pestaña; el servidor valida el token firmado.
 function leerSesion(): Sesion | null {
   try {
     const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? 'null');

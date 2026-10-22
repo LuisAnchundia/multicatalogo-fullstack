@@ -4,6 +4,9 @@
 // - Árbol jerárquico recursivo de referidos con comisión calculada por nivel
 import { contarRed, sumarVentasRed, nivelAlcanzado, comisionDeReferido, TASA_COMISION, type Referido } from '../data/red';
 import { useRed } from '../hooks/useRed';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { authorized, type Commission } from '../services/api';
 
 // Colores y etiquetas por nivel para el árbol
 const NIVEL_ESTILO: Record<number, { badge: string; border: string; tasa: string }> = {
@@ -55,18 +58,32 @@ const NodoReferido = ({ nodo }: { nodo: Referido }) => {
 
 const MiRed = () => {
   const { red, loading, error } = useRed();
+  const { token } = useAuth();
+  const [codigo, setCodigo] = useState('');
+  const [comisiones, setComisiones] = useState<Commission[]>([]);
+  const [estadoCopia, setEstadoCopia] = useState('');
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    Promise.all([authorized<{ codigo: string }>(token, '/api/referido/codigo'), authorized<Commission[]>(token, '/api/comisiones/mias')])
+      .then(([ref, ledger]) => { if (active) { setCodigo(ref.codigo); setComisiones(ledger); } })
+      .catch(() => { if (active) setEstadoCopia('No se pudo cargar el enlace o las comisiones.'); });
+    return () => { active = false; };
+  }, [token]);
+  const enlace = codigo ? `${window.location.origin}/registro?ref=${encodeURIComponent(codigo)}` : '';
+  async function copiar() { try { await navigator.clipboard.writeText(enlace); setEstadoCopia('Enlace copiado.'); } catch { setEstadoCopia('No se pudo copiar; selecciona el enlace manualmente.'); } }
   if (loading) return <p>Cargando red...</p>;
   if (!red) return <p role="alert" className="text-red-700">{error || 'No se pudo cargar la red'}</p>;
   // KPIs derivados de los datos de la red (funciones puras en data/red.ts)
   const referidosActivos = contarRed(red);
   const ventasRed = sumarVentasRed(red);
-  const comisionesMes = red.saldo ?? 0;
+  const saldo = red.saldo ?? 0;
   const nivel = nivelAlcanzado(red.hijos?.length ?? 0);
 
   const resumen = [
     { etiqueta: "Referidos Activos", valor: referidosActivos.toString(), color: "text-indigo-600" },
     { etiqueta: "Ventas de la Red", valor: `$${ventasRed.toLocaleString()}`, color: "text-indigo-600" },
-    { etiqueta: "Comisiones del Mes", valor: `$${comisionesMes.toFixed(2)}`, color: "text-green-600" },
+    { etiqueta: "Saldo de comisiones", valor: `$${saldo.toFixed(2)}`, color: "text-green-600" },
     { etiqueta: "Nivel Alcanzado", valor: nivel, color: "text-amber-600" },
   ];
 
@@ -87,6 +104,8 @@ const MiRed = () => {
         ))}
       </div>
 
+      {codigo && <section className="mb-6 rounded-lg border bg-white p-4"><h2 className="font-semibold mb-2">Invita a tu red</h2><div className="flex flex-wrap gap-2"><input aria-label="Enlace de referido" className="min-w-0 flex-1 rounded border p-2" readOnly value={enlace}/><button className="rounded bg-indigo-600 px-4 py-2 text-white" onClick={() => void copiar()}>Copiar enlace</button></div>{estadoCopia && <p role="status" className="mt-2 text-sm">{estadoCopia}</p>}</section>}
+
       {/* ===== ÁRBOL DE REFERIDOS ===== */}
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
         <h2 className="text-lg font-bold text-slate-800 mb-4">Jerarquía de tu Red</h2>
@@ -103,7 +122,7 @@ const MiRed = () => {
             </div>
           </div>
           <p className="font-bold text-green-400">
-            Comisiones del mes: ${comisionesMes.toFixed(2)}
+            Saldo de comisiones: ${saldo.toFixed(2)}
           </p>
         </div>
 
@@ -112,7 +131,9 @@ const MiRed = () => {
             <NodoReferido key={hijo.id} nodo={hijo} />
           ))}
         </ul>
+        {!red.hijos?.length && <p className="text-slate-500">Aún no tienes referidos. Comparte tu enlace para empezar.</p>}
       </div>
+      <section className="mt-6 rounded-lg border bg-white p-4"><h2 className="font-semibold mb-3">Mis comisiones</h2>{comisiones.map((item,i)=><p key={`${item.pedidoId}-${item.nivel}-${i}`} className="border-b py-2 text-sm">{item.numero} · Nivel {item.nivel} · ${item.monto.toFixed(2)} · {item.estado}</p>)}{!comisiones.length&&<p className="text-slate-500">Aún no hay comisiones registradas.</p>}</section>
     </div>
   );
 };

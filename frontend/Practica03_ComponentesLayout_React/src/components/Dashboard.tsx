@@ -1,101 +1,27 @@
-// src/components/Dashboard.tsx
-// Resumen general con KPIs calculados desde el estado real (Tema 5):
-// - Funciones puras de data/red.ts en lugar de valores estáticos
-import { contarRed, sumarVentasRed, nivelAlcanzado, comisionDeReferido } from '../data/red';
-import { useRed } from '../hooks/useRed';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { authorized, type ReportSummary, type TopRecord } from '../services/api';
 
-const Dashboard = () => {
-  const { red, loading, error } = useRed();
-  if (loading) return <p>Cargando resumen...</p>;
-  if (!red) return <p role="alert" className="text-red-700">{error || 'No se pudo cargar el resumen'}</p>;
-  const referidosDirectos = red.hijos?.length ?? 0;
-  const referidosActivos = contarRed(red);
-  const ventasRed = sumarVentasRed(red);
-  const comisionesMes = red.saldo ?? 0;
-  const nivel = nivelAlcanzado(referidosDirectos);
-
-  const kpis = [
-    { etiqueta: "Ventas de la Red", valor: `$${ventasRed.toLocaleString()}`, color: "text-indigo-600" },
-    { etiqueta: "Referidos Activos", valor: referidosActivos.toString(), color: "text-indigo-600" },
-    { etiqueta: "Comisiones del Mes", valor: `$${comisionesMes.toFixed(2)}`, color: "text-green-600" },
-    { etiqueta: "Nivel Actual", valor: nivel, color: "text-amber-600" },
-  ];
-
-  // Top 3 referidos por ventas (sin recursión: solo nivel 1)
-  const topReferidos = [...(red.hijos ?? [])]
-    .sort((a, b) => b.ventas - a.ventas)
-    .slice(0, 3);
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-800 mb-6">Resumen General</h1>
-
-      {/* ===== KPIs DERIVADOS DEL ESTADO ===== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        {kpis.map((kpi) => (
-          <div key={kpi.etiqueta} className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
-            <p className="text-sm text-slate-500 uppercase font-semibold">{kpi.etiqueta}</p>
-            <p className={`text-3xl font-bold mt-2 ${kpi.color}`}>{kpi.valor}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ===== TOP REFERIDOS ===== */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Top Referidos del Mes</h2>
-          <div className="space-y-3">
-            {topReferidos.map((ref, idx) => (
-              <div
-                key={ref.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center">
-                    {idx + 1}
-                  </span>
-                  <div>
-                    <p className="font-semibold text-slate-800">{ref.nombre}</p>
-                    <p className="text-xs text-slate-500">Nivel {ref.nivel}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-slate-800">${ref.ventas.toLocaleString()}</p>
-                  <p className="text-xs text-indigo-600 font-semibold">
-                    +${comisionDeReferido(ref).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ===== PROGRESO DE NIVEL ===== */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Progreso al Siguiente Nivel</h2>
-          <p className="text-slate-500 text-sm mb-4">
-            {referidosDirectos} referidos directos. El nivel se calcula con:
-          </p>
-          <ul className="space-y-2 text-sm text-slate-600 mb-6">
-            <li className="flex justify-between"><span>Bronce</span><span>0 – 1 directos</span></li>
-            <li className="flex justify-between"><span>Plata</span><span>2 – 3 directos</span></li>
-            <li className="flex justify-between"><span>Oro</span><span>4 – 5 directos</span></li>
-            <li className="flex justify-between"><span>Diamante</span><span>6+ directos</span></li>
-          </ul>
-
-          <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
-              style={{ width: `${Math.min((referidosDirectos / 6) * 100, 100)}%` }}
-            />
-          </div>
-          <p className="text-center text-sm text-slate-500 mt-2 font-semibold">
-            Nivel actual: {nivel} ({referidosDirectos} / 6 directos para Diamante)
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Dashboard;
+export default function Dashboard() {
+  const {token}=useAuth();const [summary,setSummary]=useState<ReportSummary|null>(null);
+  const [products,setProducts]=useState<TopRecord[]>([]);const [referrals,setReferrals]=useState<TopRecord[]>([]);
+  const [error,setError]=useState('');const [loading,setLoading]=useState(true);
+  const [desde,setDesde]=useState('');const [hasta,setHasta]=useState('');
+  useEffect(()=>{if(!token)return;let active=true;
+    Promise.all([
+      authorized<ReportSummary>(token,`/api/reportes/resumen?desde=${desde}&hasta=${hasta}`),
+      authorized<TopRecord[]>(token,'/api/reportes/top-productos'),
+      authorized<TopRecord[]>(token,'/api/reportes/top-referidos')
+    ]).then(([a,b,c])=>{if(active){setSummary(a);setProducts(b);setReferrals(c);setLoading(false);}}).catch(cause=>{if(active){setError((cause as Error).message);setLoading(false);}});
+    return()=>{active=false;};
+  },[token,desde,hasta]);
+  return <div className="space-y-6"><h1 className="text-2xl font-bold">Resumen del negocio</h1>
+    <div className="flex flex-wrap gap-3"><label>Desde <input type="date" className="rounded border p-2" value={desde} onChange={e=>setDesde(e.target.value)}/></label><label>Hasta <input type="date" className="rounded border p-2" value={hasta} onChange={e=>setHasta(e.target.value)}/></label></div>
+    {loading&&<p role="status">Cargando reportes...</p>}{error&&<p role="alert" className="text-red-700">{error}</p>}
+    {summary&&<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[
+      ['Ventas',`$${summary.ventas.toFixed(2)}`],['Pedidos',String(summary.pedidos)],['Ticket promedio',`$${summary.ticketPromedio.toFixed(2)}`],['Comisiones devengadas',`$${summary.comisiones.toFixed(2)}`]
+    ].map(([label,value])=><div key={label} className="rounded border bg-white p-5"><p className="text-sm text-slate-500">{label}</p><p className="text-2xl font-bold">{value}</p></div>)}</div>}
+    {!loading&&summary?.pedidos===0&&<p className="rounded border bg-white p-4 text-slate-500">No hay ventas en el periodo seleccionado.</p>}
+    <div className="grid gap-4 lg:grid-cols-2"><section className="rounded border bg-white p-5"><h2 className="font-semibold mb-3">Productos más vendidos (histórico)</h2>{products.map((x,i)=><p key={`${x.nombre}-${i}`} className="border-b py-2">{x.nombre} · ${x.total.toFixed(2)}</p>)}{!products.length&&<p className="text-slate-500">Sin ventas todavía.</p>}</section><section className="rounded border bg-white p-5"><h2 className="font-semibold mb-3">Ventas de la red por usuario (histórico)</h2>{referrals.map((x,i)=><p key={`${x.nombre}-${i}`} className="border-b py-2">{x.nombre} · ${x.total.toFixed(2)}</p>)}{!referrals.length&&<p className="text-slate-500">Sin ventas de referidos todavía.</p>}</section></div>
+  </div>;
+}

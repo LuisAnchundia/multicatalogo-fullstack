@@ -11,6 +11,11 @@ import Carrito from './components/Carrito';
 import Checkout from './components/Checkout';
 import Confirmacion from './components/Confirmacion';
 import Login from './components/Login';
+import Registro from './components/Registro';
+import AdminProductos from './components/AdminProductos';
+import AdminUsuarios from './components/AdminUsuarios';
+import Pedidos from './components/Pedidos';
+import AdminLiquidaciones from './components/AdminLiquidaciones';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SidebarProvider } from './context/SidebarContext';
@@ -64,15 +69,22 @@ function App() {
             <Routes>
               {/* Ruta pública */}
               <Route path="/login" element={<Login />} />
+              <Route path="/registro" element={<Registro />} />
 
               {/* Rutas protegidas (requieren login) */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Layout />}>
-                  {/* Solo administrador: Dashboard y Red multinivel */}
+                  {/* Funciones exclusivas del administrador */}
                   <Route element={<AdminRoute />}>
                     <Route index element={<Dashboard />} />
-                    <Route path="mi-red" element={<MiRed />} />
+                    <Route path="admin/productos" element={<AdminProductos />} />
+                    <Route path="admin/usuarios" element={<AdminUsuarios />} />
+                    <Route path="admin/pedidos" element={<Pedidos admin />} />
+                    <Route path="admin/liquidaciones" element={<AdminLiquidaciones />} />
                   </Route>
+
+                  <Route path="mi-red" element={<MiRed />} />
+                  <Route path="mis-pedidos" element={<Pedidos />} />
 
                   {/* Ambos roles: flujo de compra en línea */}
                   <Route path="tienda" element={<Storefront />} />

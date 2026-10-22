@@ -13,7 +13,12 @@ const menu = [
   { to: "/", label: "Dashboard", Icon: IconDashboard, soloAdmin: true },
   { to: "/tienda", label: "Tienda", Icon: IconCarrito },
   { to: "/catalogo", label: "Catálogo", Icon: IconCatalogo },
-  { to: "/mi-red", label: "Mi Red", Icon: IconMiRed, soloAdmin: true },
+  { to: "/mi-red", label: "Mi Red", Icon: IconMiRed },
+  { to: "/mis-pedidos", label: "Mis pedidos", Icon: IconCarrito },
+  { to: "/admin/productos", label: "Productos", Icon: IconCatalogo, soloAdmin: true },
+  { to: "/admin/usuarios", label: "Usuarios", Icon: IconDashboard, soloAdmin: true },
+  { to: "/admin/pedidos", label: "Pedidos", Icon: IconCarrito, soloAdmin: true },
+  { to: "/admin/liquidaciones", label: "Liquidaciones", Icon: IconMiRed, soloAdmin: true },
 ];
 
 const Sidebar = ({ isCollapsed, isOpen, onClose }: SidebarProps) => {

@@ -22,6 +22,9 @@ func (a API) Login(c *fiber.Ctx) error {
 	if errors.Is(err, repository.ErrNotFound) {
 		return apiError(c, 401, "Credenciales incorrectas")
 	}
+	if errors.Is(err, repository.ErrForbidden) {
+		return apiError(c, 403, "Cuenta desactivada")
+	}
 	if err != nil {
 		return apiError(c, 500, "No se pudo iniciar sesión")
 	}
@@ -37,5 +40,9 @@ func (a API) auth(c *fiber.Ctx) (session.Claims, error) {
 	if !strings.HasPrefix(header, "Bearer ") {
 		return session.Claims{}, errors.New("sesión requerida")
 	}
-	return a.Tokens.Verify(strings.TrimPrefix(header, "Bearer "))
+	claims, err := a.Tokens.Verify(strings.TrimPrefix(header, "Bearer "))
+	if err != nil {
+		return claims, err
+	}
+	return claims, a.Service.DB.UserAccess(c.UserContext(), claims.ID, claims.Email, claims.Rol)
 }

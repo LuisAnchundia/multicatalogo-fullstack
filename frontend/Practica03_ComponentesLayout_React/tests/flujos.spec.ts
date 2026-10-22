@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { contarRed, sumarVentasRed, sumarComisiones, nivelAlcanzado, redInicial } from '../src/data/red';
+const API = process.env.API_URL ?? 'http://localhost:3000';
 
 async function login(page: Page, rol: 'admin' | 'cliente') {
   await page.goto('/login');
@@ -29,15 +30,15 @@ test.beforeEach(async ({ page }) => {
 
 test('API: dos roles, credenciales incorrectas, JSON inválido y catálogo base', async ({ request }) => {
   for (const rol of ['admin', 'cliente']) {
-    const res = await request.post('http://localhost:3000/api/login', { data: { email: `${rol}@upse.edu.ec`, password: '123456' } });
+    const res = await request.post(`${API}/api/login`, { data: { email: `${rol}@upse.edu.ec`, password: '123456' } });
     expect(res.status()).toBe(200);
     expect(await res.json()).toMatchObject({ email: `${rol}@upse.edu.ec`, rol });
   }
-  expect((await request.post('http://localhost:3000/api/login', { data: { email: 'admin@upse.edu.ec', password: 'incorrecta' } })).status()).toBe(401);
-  expect((await request.post('http://localhost:3000/api/login', { data: '{', headers: { 'Content-Type': 'application/json' } })).status()).toBe(400);
-  const p = await request.get('http://localhost:3000/api/productos');
+  expect((await request.post(`${API}/api/login`, { data: { email: 'admin@upse.edu.ec', password: 'incorrecta' } })).status()).toBe(401);
+  expect((await request.post(`${API}/api/login`, { data: '{', headers: { 'Content-Type': 'application/json' } })).status()).toBe(400);
+  const p = await request.get(`${API}/api/productos`);
   expect(await p.json()).toHaveLength(8);
-  expect((await request.get('http://localhost:3000/api/productos')).headers()['x-cache']).toBe('HIT');
+  expect((await request.get(`${API}/api/productos`)).headers()['x-cache']).toBe('HIT');
 });
 
 test('red: cálculos recursivos, límites de nivel y KPIs compartidos', async ({ page, request }) => {
@@ -49,15 +50,14 @@ test('red: cálculos recursivos, límites de nivel y KPIs compartidos', async ({
   expect(contarRed(vacia)).toBe(0);
   expect(sumarVentasRed(vacia)).toBe(0);
   expect(sumarComisiones(vacia)).toBe(0);
-  const loginResponse = await request.post('http://localhost:3000/api/login', { data: { email: 'admin@upse.edu.ec', password: '123456' } });
+  const loginResponse = await request.post(`${API}/api/login`, { data: { email: 'admin@upse.edu.ec', password: '123456' } });
   const auth = await loginResponse.json();
-  const redResponse = await request.get('http://localhost:3000/api/red', { headers: { Authorization: `Bearer ${auth.token}` } });
+  const redResponse = await request.get(`${API}/api/red`, { headers: { Authorization: `Bearer ${auth.token}` } });
   const red = await redResponse.json();
   const saldo = `$${red.saldo.toFixed(2)}`;
   await login(page, 'admin');
-  await expect(page.getByRole('heading', { name: 'Resumen General' })).toBeVisible();
-  await expect(page.getByText(saldo, { exact: true })).toBeVisible();
-  await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(4);
+  await expect(page.getByRole('heading', { name: 'Resumen del negocio' })).toBeVisible();
+  await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(9);
   await page.getByRole('link', { name: 'Mi Red', exact: true }).click();
   await expect(page.getByText('Diana Paz')).toBeVisible();
   await expect(page.getByText('Nivel 3 · 2 % comisión')).toBeVisible();
@@ -70,16 +70,17 @@ test('guardas, storefront, filtros y navegación atrás', async ({ page }) => {
   await page.goto('/mi-red');
   await expect(page).toHaveURL('/login');
   await login(page, 'cliente');
-  await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(2);
+  await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(4);
   await expect(page.getByRole('link', { name: 'Conocer el Plan Multinivel' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Explorar el Catálogo' })).toBeVisible();
   await expect(page.locator('main section').nth(1).getByRole('link')).toHaveCount(5);
   await expect(page.locator('main section').nth(2).getByRole('link')).toHaveCount(4);
   expect(await page.locator('main section').first().evaluate(el => el.getBoundingClientRect().height >= window.innerHeight)).toBe(true);
-  for (const path of ['/', '/mi-red']) {
-    await page.goto(path);
-    await expect(page).toHaveURL('/tienda');
-  }
+  await page.goto('/');
+  await expect(page).toHaveURL('/tienda');
+  await page.goto('/mi-red');
+  await expect(page.getByRole('heading', { name: 'Mi Red de Referidos' })).toBeVisible();
+  await page.goto('/tienda');
   await page.getByRole('link', { name: 'Serum', exact: true }).click();
   await expect(page).toHaveURL(/categoria=Serum/);
   await expect(page.getByText('2 producto(s) encontrado(s)')).toBeVisible();

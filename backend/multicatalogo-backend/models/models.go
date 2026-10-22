@@ -31,6 +31,7 @@ type Producto struct {
 	Categoria   string   `json:"categoria"`
 	Galeria     []string `json:"galeria"`
 	Stock       int      `json:"stock"`
+	Activo      bool     `json:"activo"`
 }
 
 // Usuario representa la cuenta autenticada y su lugar en la red.

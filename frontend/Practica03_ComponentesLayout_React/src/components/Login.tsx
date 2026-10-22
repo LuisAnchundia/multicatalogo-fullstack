@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginRequest } from '../services/api';
 
@@ -90,6 +90,7 @@ const Login = () => {
             {cargando ? 'Verificando...' : 'Iniciar Sesión'}
           </button>
         </form>
+        <p className="mt-4 text-center"><Link className="text-indigo-700 underline" to="/registro">Crear cuenta</Link></p>
         <div className="mt-6 rounded-lg bg-slate-50 p-4 text-xs text-slate-600 space-y-1">
           <p className="font-semibold">Cuentas de prueba · contraseña: 123456</p>
           <p>Admin: admin@upse.edu.ec</p>

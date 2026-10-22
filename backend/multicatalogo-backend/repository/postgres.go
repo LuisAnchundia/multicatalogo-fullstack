@@ -13,9 +13,11 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("recurso no encontrado")
-	ErrInvalid  = errors.New("datos inválidos")
-	ErrStock    = errors.New("stock insuficiente")
+	ErrNotFound  = errors.New("recurso no encontrado")
+	ErrInvalid   = errors.New("datos inválidos")
+	ErrStock     = errors.New("stock insuficiente")
+	ErrForbidden = errors.New("operación no permitida")
+	ErrConflict  = errors.New("recurso duplicado")
 )
 
 type CheckoutResult struct {
@@ -28,6 +30,7 @@ type CheckoutResult struct {
 // DBRepository permite inyectar la persistencia en los controladores.
 type DBRepository interface {
 	Authenticate(context.Context, string, string) (models.Usuario, error)
+	UserAccess(context.Context, int64, string, string) error
 	Productos(context.Context) ([]models.Producto, error)
 	Producto(context.Context, int) (models.Producto, error)
 	Red(context.Context, string) (*models.Referido, error)
@@ -36,19 +39,39 @@ type DBRepository interface {
 	PendingCommissionJobs(context.Context) ([]int64, error)
 }
 
+func (p *Postgres) UserAccess(ctx context.Context, id int64, email, role string) error {
+	var actualEmail, actualRole string
+	var active bool
+	err := p.DB.QueryRowContext(ctx, `SELECT email,rol,activo FROM usuarios WHERE id=$1`, id).Scan(&actualEmail, &actualRole, &active)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if !active || actualEmail != email || actualRole != role {
+		return ErrForbidden
+	}
+	return nil
+}
+
 type Postgres struct{ DB *sql.DB }
 
 func (p *Postgres) Authenticate(ctx context.Context, email, password string) (models.Usuario, error) {
 	var u models.Usuario
 	var hash string
 	var parent sql.NullInt64
-	err := p.DB.QueryRowContext(ctx, `SELECT id,email,nombre,rol,parent_id,password_hash FROM usuarios WHERE lower(email)=lower($1)`, email).
-		Scan(&u.ID, &u.Email, &u.Nombre, &u.Rol, &parent, &hash)
+	var active bool
+	err := p.DB.QueryRowContext(ctx, `SELECT id,email,nombre,rol,parent_id,password_hash,activo FROM usuarios WHERE lower(email)=lower($1)`, email).
+		Scan(&u.ID, &u.Email, &u.Nombre, &u.Rol, &parent, &hash, &active)
 	if errors.Is(err, sql.ErrNoRows) {
 		return u, ErrNotFound
 	}
 	if err != nil {
 		return u, err
+	}
+	if !active {
+		return u, ErrForbidden
 	}
 	if parent.Valid {
 		u.ParentID = &parent.Int64
@@ -63,7 +86,7 @@ func scanProducto(scanner interface{ Scan(...any) error }) (models.Producto, err
 	var p models.Producto
 	var cents int64
 	var gallery []byte
-	err := scanner.Scan(&p.ID, &p.Nombre, &p.Descripcion, &cents, &p.Categoria, &p.Img, &gallery, &p.Stock)
+	err := scanner.Scan(&p.ID, &p.Nombre, &p.Descripcion, &cents, &p.Categoria, &p.Img, &gallery, &p.Stock, &p.Activo)
 	if err != nil {
 		return p, err
 	}
@@ -74,10 +97,10 @@ func scanProducto(scanner interface{ Scan(...any) error }) (models.Producto, err
 	return p, nil
 }
 
-const productoFields = `id,nombre,descripcion,precio_cents,categoria,img,galeria,stock`
+const productoFields = `id,nombre,descripcion,precio_cents,categoria,img,galeria,stock,activo`
 
 func (p *Postgres) Productos(ctx context.Context) ([]models.Producto, error) {
-	rows, err := p.DB.QueryContext(ctx, `SELECT `+productoFields+` FROM productos ORDER BY id`)
+	rows, err := p.DB.QueryContext(ctx, `SELECT `+productoFields+` FROM productos WHERE activo=TRUE ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +117,7 @@ func (p *Postgres) Productos(ctx context.Context) ([]models.Producto, error) {
 }
 
 func (p *Postgres) Producto(ctx context.Context, id int) (models.Producto, error) {
-	producto, err := scanProducto(p.DB.QueryRowContext(ctx, `SELECT `+productoFields+` FROM productos WHERE id=$1`, id))
+	producto, err := scanProducto(p.DB.QueryRowContext(ctx, `SELECT `+productoFields+` FROM productos WHERE id=$1 AND activo=TRUE`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return producto, ErrNotFound
 	}
@@ -163,7 +186,7 @@ func (p *Postgres) Checkout(ctx context.Context, userID int64, email string, req
 		var nombre string
 		var price int64
 		var stock int
-		err = tx.QueryRowContext(ctx, `SELECT nombre,precio_cents,stock FROM productos WHERE id=$1 FOR UPDATE`, item.ID).Scan(&nombre, &price, &stock)
+		err = tx.QueryRowContext(ctx, `SELECT nombre,precio_cents,stock FROM productos WHERE id=$1 AND activo=TRUE FOR UPDATE`, item.ID).Scan(&nombre, &price, &stock)
 		if errors.Is(err, sql.ErrNoRows) {
 			return result, fmt.Errorf("producto %d: %w", item.ID, ErrInvalid)
 		}
@@ -195,6 +218,22 @@ func (p *Postgres) Checkout(ctx context.Context, userID int64, email string, req
 	_, err = tx.ExecContext(ctx, `INSERT INTO commission_jobs(pedido_id,usuario_id,total_cents) VALUES($1,$2,$3)`, orderID, userID, total)
 	if err != nil {
 		return result, err
+	}
+	// El libro de comisiones nace con el pedido. El trabajador solo acredita saldos.
+	var parent sql.NullInt64
+	if err = tx.QueryRowContext(ctx, `SELECT parent_id FROM usuarios WHERE id=$1`, userID).Scan(&parent); err != nil {
+		return result, err
+	}
+	for level := 1; level <= 3 && parent.Valid; level++ {
+		amount := (total*[]int64{10, 5, 2}[level-1] + 50) / 100
+		if _, err = tx.ExecContext(ctx, `INSERT INTO comisiones(pedido_id,beneficiario_id,nivel,monto_cents) VALUES($1,$2,$3,$4)`, orderID, parent.Int64, level, amount); err != nil {
+			return result, err
+		}
+		var next sql.NullInt64
+		if err = tx.QueryRowContext(ctx, `SELECT parent_id FROM usuarios WHERE id=$1`, parent.Int64).Scan(&next); err != nil {
+			return result, err
+		}
+		parent = next
 	}
 	rows, err := tx.QueryContext(ctx, `WITH RECURSIVE ascendientes AS (
 		SELECT id,parent_id,email FROM usuarios WHERE id=$1
@@ -234,40 +273,57 @@ func (p *Postgres) ProcessCommissionJob(ctx context.Context, orderID int64) ([]s
 		return nil, err
 	}
 	defer tx.Rollback()
-	var buyer, total int64
 	var status string
-	err = tx.QueryRowContext(ctx, `SELECT usuario_id,total_cents,status FROM commission_jobs WHERE pedido_id=$1 FOR UPDATE`, orderID).Scan(&buyer, &total, &status)
+	err = tx.QueryRowContext(ctx, `SELECT status FROM commission_jobs WHERE pedido_id=$1 FOR UPDATE`, orderID).Scan(&status)
 	if err != nil {
 		return nil, err
 	}
 	if status == "done" {
 		return nil, nil
 	}
+	var orderState string
+	if err = tx.QueryRowContext(ctx, `SELECT estado FROM pedidos WHERE id=$1`, orderID).Scan(&orderState); err != nil {
+		return nil, err
+	}
+	if orderState == "cancelado" {
+		_, err = tx.ExecContext(ctx, `UPDATE commission_jobs SET status='done' WHERE pedido_id=$1`, orderID)
+		if err != nil {
+			return nil, err
+		}
+		return nil, tx.Commit()
+	}
 	emails := make([]string, 0, 3)
-	var parent sql.NullInt64
-	err = tx.QueryRowContext(ctx, `SELECT parent_id FROM usuarios WHERE id=$1`, buyer).Scan(&parent)
+	rows, err := tx.QueryContext(ctx, `SELECT c.beneficiario_id,u.email,c.monto_cents FROM comisiones c JOIN usuarios u ON u.id=c.beneficiario_id WHERE c.pedido_id=$1 AND c.estado='pendiente' AND c.acreditada=FALSE ORDER BY c.nivel`, orderID)
 	if err != nil {
 		return nil, err
 	}
-	for level := 1; level <= 3 && parent.Valid; level++ {
-		var next sql.NullInt64
-		var email string
-		err = tx.QueryRowContext(ctx, `SELECT email,parent_id FROM usuarios WHERE id=$1`, parent.Int64).Scan(&email, &next)
-		if err != nil {
+	type credit struct {
+		id     int64
+		email  string
+		amount int64
+	}
+	credits := []credit{}
+	for rows.Next() {
+		var c credit
+		if err = rows.Scan(&c.id, &c.email, &c.amount); err != nil {
+			rows.Close()
 			return nil, err
 		}
-		emails = append(emails, email)
-		rate := []int64{10, 5, 2}[level-1]
-		amount := (total*rate + 50) / 100
-		_, err = tx.ExecContext(ctx, `INSERT INTO comisiones(pedido_id,beneficiario_id,nivel,monto_cents) VALUES($1,$2,$3,$4)`, orderID, parent.Int64, level, amount)
-		if err != nil {
+		credits = append(credits, c)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range credits {
+		if _, err = tx.ExecContext(ctx, `UPDATE usuarios SET saldo_cents=saldo_cents+$1 WHERE id=$2`, c.amount, c.id); err != nil {
 			return nil, err
 		}
-		_, err = tx.ExecContext(ctx, `UPDATE usuarios SET saldo_cents=saldo_cents+$1 WHERE id=$2`, amount, parent.Int64)
-		if err != nil {
-			return nil, err
-		}
-		parent = next
+		emails = append(emails, c.email)
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE comisiones SET acreditada=TRUE WHERE pedido_id=$1 AND estado='pendiente'`, orderID); err != nil {
+		return nil, err
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE commission_jobs SET status='done' WHERE pedido_id=$1`, orderID)
 	if err != nil {

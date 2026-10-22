@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -20,6 +21,9 @@ import (
 	"multicatalogo-backend/session"
 )
 
+//go:embed db/002_backoffice.sql
+var backofficeMigration string
+
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	db, err := config.NewPostgres(ctx)
@@ -28,6 +32,15 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	for _, statement := range strings.Split(backofficeMigration, ";") {
+		if strings.TrimSpace(statement) == "" {
+			continue
+		}
+		if _, err := db.ExecContext(ctx, statement); err != nil {
+			slog.Error("No se pudo aplicar la migración de back-office", "error", err)
+			os.Exit(1)
+		}
+	}
 	redisClient, err := config.NewRedis(ctx)
 	cancel()
 	if err != nil {
@@ -48,13 +61,14 @@ func main() {
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:  strings.Join(strings.Split(allowed, ","), ","),
-		AllowMethods:  "GET,POST,OPTIONS",
+		AllowMethods:  "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowHeaders:  "Origin,Content-Type,Accept,Authorization",
 		ExposeHeaders: "X-Cache",
 	}))
 
-	services := service.App{DB: &repository.Postgres{DB: db}, Cache: cache.Redis{Client: redisClient}}
-	routes.SetupRoutes(app, controllers.API{Service: services, Tokens: session.Tokens{Secret: []byte(secret)}})
+	pg := &repository.Postgres{DB: db}
+	services := service.App{DB: pg, Cache: cache.Redis{Client: redisClient}}
+	routes.SetupRoutes(app, controllers.API{Service: services, Operations: pg, Tokens: session.Tokens{Secret: []byte(secret)}})
 
 	stopWorker := make(chan struct{})
 	go func() {
@@ -81,7 +95,11 @@ func main() {
 			slog.Error("apagado", "error", err)
 		}
 	}()
-	if err := app.Listen(":3000"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+	if err := app.Listen(":" + port); err != nil {
 		slog.Error("servidor", "error", err)
 		os.Exit(1)
 	}
