@@ -1,0 +1,16 @@
+{
+  "id": "/",
+  "name": "MultiCatálogo",
+  "short_name": "MultiCatálogo",
+  "description": "Catálogo, pedidos y red de referidos en una sola aplicación.",
+  "lang": "es",
+  "start_url": "/login",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7fbf8",
+  "theme_color": "#5e1f33",
+  "icons": [
+    { "src": "/pwa-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/pwa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

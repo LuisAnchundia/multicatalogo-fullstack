@@ -2,8 +2,8 @@ import type { Rol } from "../context/AuthContext";
 import type { Referido } from '../data/red';
 import type { PedidoConfirmado } from '../data/pedidos';
 
-// La URL sale de la variable de entorno; si no existe se usa el backend local.
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// En producción React y la API comparten origen. En desarrollo Vite usa Go en :3000.
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "" : "http://localhost:3000");
 
 export interface LoginResponse {
   token: string;
@@ -22,7 +22,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   try {
     res = await fetch(`${API_URL}${path}`, options);
   } catch {
-    throw new Error('No se pudo conectar con el backend. Comprueba que Docker esté iniciado.');
+    throw new Error('No se pudo conectar con el servidor. Inténtalo de nuevo en un momento.');
   }
   if (res.status === 204) return undefined as T;
   const data = await res.json() as T & ErrorResponse;

@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { IconCarrito, IconMenu, IconToggle, IconLogout } from './Icons';
+import InstallButton from './InstallButton';
 
 export default function Navbar({ adminView }: { adminView: boolean }) {
   const { totalItems, totalPrice } = useCart();
@@ -35,6 +36,7 @@ export default function Navbar({ adminView }: { adminView: boolean }) {
     </div>
     <div className="mc-nav-actions">
       {!adminView && <form onSubmit={buscar} role="search" className="mc-nav-search"><span aria-hidden="true">⌕</span><input aria-label="Buscar en la tienda" placeholder="Buscar cosméticos..." value={busqueda} onChange={e => setBusqueda(e.target.value)} /></form>}
+      <InstallButton />
       {adminView ? <Link to="/tienda" className="mc-admin-store-shortcut">Ir a la tienda ↗</Link> : null}
       <Link to="/carrito" className="mc-cart-link" aria-label="Ver carrito"><IconCarrito className="w-5 h-5" /><span className="mc-cart-text">Carrito ({totalItems}){totalItems > 0 ? ` · $${totalPrice.toFixed(2)}` : ''}</span></Link>
       <div className="mc-user-menu">

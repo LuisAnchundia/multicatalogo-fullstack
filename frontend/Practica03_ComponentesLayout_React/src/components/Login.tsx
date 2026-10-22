@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginRequest } from '../services/api';
 import { IconEye, IconEyeOff } from './Icons';
+import InstallButton from './InstallButton';
 
 const cuentasPrincipales = [
   { nombre: 'Administrador', email: 'admin@upse.edu.ec' },
@@ -63,6 +64,7 @@ const Login = () => {
         <div className="text-center mb-8">
           <h1 className="mc-serif text-2xl sm:text-3xl font-bold text-indigo-700">MultiCatálogo</h1>
           <p className="text-slate-500 mt-2">Ingresa a tu cuenta para continuar</p>
+          <div className="mt-4 flex justify-center"><InstallButton /></div>
         </div>
 
         {error && (

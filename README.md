@@ -72,7 +72,15 @@ Los tokens van firmados con `TOKEN_SECRET`, y las contraseñas de demostración 
 El Dashboard y el back-office son exclusivos del administrador. Ambos roles pueden consultar su propia red, sus pedidos y el flujo de compra.
 El seed contiene 7 referidos y un saldo inicial demostrativo de $319,50 para el administrador.
 
-La aplicación todavía no incluye manifiesto PWA ni service worker, y la instalación desde un enlace público queda para la siguiente etapa. Antes de desplegarla también hay que alojar la API Go, PostgreSQL y Redis, configurar `VITE_API_URL` y `APP_ORIGINS` para las URLs HTTPS, y reemplazar los secretos y las cuentas de demostración.
+## Publicación gratuita para la lección
+
+`render.yaml` crea tres recursos en el plan Free de Render: un servicio web con React y Go en el mismo enlace HTTPS, PostgreSQL y Key Value (Redis). El `Dockerfile` de la raíz compila ambas partes. Al arrancar sobre una base vacía, Go carga `001_init.sql` con los datos de demostración; si las tablas ya existen, conserva los datos. `TOKEN_SECRET` se genera automáticamente en Render. No hace falta configurar `VITE_API_URL` ni CORS para el sitio público porque la interfaz y la API comparten origen.
+
+Para desplegar: conecta este repositorio de GitHub en **Render → New → Blueprint**, selecciona la rama `main`, revisa que los tres recursos indiquen **Free** y aplica `render.yaml`. Cuando el servicio web termine, abre la URL `https://...onrender.com/login` y verifica el catálogo, el acceso y una compra de prueba. Las credenciales públicas de esta práctica son exclusivamente de demostración; no uses datos reales de personas o pagos.
+
+Render suspende el backend gratuito tras 15 minutos sin tráfico y el primer acceso puede tardar alrededor de un minuto. Abre el enlace unos minutos antes de la exposición. Su PostgreSQL gratuito vence después de 30 días; haz la demostración antes de esa fecha.
+
+La web incluye manifiesto PWA, iconos de 192 y 512 píxeles y service worker que guarda la interfaz y las imágenes visitadas. Las operaciones de la API requieren conexión. El botón **Instalar app** abre la instalación cuando el navegador la ofrece; si no aparece el aviso, muestra las instrucciones para Chrome, Edge y Safari en iPhone. La instalación requiere abrir el enlace HTTPS público (o `localhost` para desarrollo).
 
 En la entrega original del Tema 5 (antes de estas fases):
 
