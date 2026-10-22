@@ -1,7 +1,6 @@
 // src/data/red.ts
-// Datos de ejemplo (mock) de la red multinivel de referidos.
-// Incluye la estructura jerárquica (árbol) y funciones puras para calcular
-// comisiones, totales y el nivel alcanzado por el usuario.
+// Tipos y funciones puras de la red multinivel. redInicial es una muestra para pruebas;
+// la pantalla obtiene los datos reales de la API.
 
 export interface Referido {
   id: number;
@@ -67,6 +66,29 @@ export const contarRed = (raiz: Referido): number => {
 export const sumarVentasRed = (raiz: Referido): number => {
   const directos = raiz.hijos ?? [];
   return directos.reduce((total, hijo) => total + hijo.ventas + sumarVentasRed(hijo), 0);
+};
+
+export interface FiltrosRed {
+  nombre: string;
+  nivel: number | null;
+  ventasMinimas: number | null;
+}
+
+// Mantiene los antecesores de cada coincidencia para que la ruta siga siendo visible.
+export const filtrarRed = (raiz: Referido, filtros: FiltrosRed): { red: Referido; coincidencias: number } => {
+  const normalizar = (texto: string) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
+  const nombre = normalizar(filtros.nombre.trim());
+  let coincidencias = 0;
+  const visitar = (nodo: Referido): Referido | null => {
+    const hijos = (nodo.hijos ?? []).map(visitar).filter((hijo): hijo is Referido => hijo !== null);
+    const coincide = (!nombre || normalizar(nodo.nombre).includes(nombre)) &&
+      (filtros.nivel === null || nodo.nivel === filtros.nivel) &&
+      (filtros.ventasMinimas === null || nodo.ventas >= filtros.ventasMinimas);
+    if (coincide) coincidencias += 1;
+    return coincide || hijos.length ? { ...nodo, hijos } : null;
+  };
+  const hijos = (raiz.hijos ?? []).map(visitar).filter((hijo): hijo is Referido => hijo !== null);
+  return { red: { ...raiz, hijos }, coincidencias };
 };
 
 // Comisión que recibe el usuario por las ventas de cada referido (ventas * tasa del nivel)

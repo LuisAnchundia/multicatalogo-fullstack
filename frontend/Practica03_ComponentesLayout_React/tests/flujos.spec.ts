@@ -59,6 +59,9 @@ test('red: cálculos recursivos, límites de nivel y KPIs compartidos', async ({
   await expect(page.getByRole('heading', { name: 'Resumen del negocio' })).toBeVisible();
   await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(9);
   await page.getByRole('link', { name: 'Mi Red', exact: true }).click();
+  await expect(page.getByText('Diana Paz')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Mostrar referidos de Ana García' }).click();
+  await page.getByRole('button', { name: 'Mostrar referidos de Carlos Ruiz' }).click();
   await expect(page.getByText('Diana Paz')).toBeVisible();
   await expect(page.getByText('Nivel 3 · 2 % comisión')).toBeVisible();
   await expect(page.getByText(saldo, { exact: true })).toBeVisible();

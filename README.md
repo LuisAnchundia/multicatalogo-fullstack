@@ -38,6 +38,8 @@ Para usar otra IP, define `APP_ORIGINS` en un `.env` de la raíz y `VITE_API_URL
 
 `/registro` crea clientes con un código opcional de referido. Cada usuario puede ver su red y copiar su enlace en `/mi-red`, consultar `/mis-pedidos` y revisar sus comisiones. El administrador dispone de `/admin/productos`, `/admin/usuarios`, `/admin/pedidos` y `/admin/liquidaciones`. El Dashboard consume reportes SQL. La cancelación de un pedido pendiente devuelve stock y revierte comisiones; una liquidación solo registra el pago administrativamente.
 
+En `/mi-red`, las ramas se despliegan por persona y se puede filtrar por nombre, nivel y ventas mínimas. Las comisiones registradas se muestran por mes (últimos seis meses) y se pueden descargar como CSV. El gráfico no inventa datos del saldo inicial de demostración. El árbol sigue llegando completo desde la API hasta tres niveles; la expansión ocurre en el navegador.
+
 El alcance detallado y el estado de verificación están en `ANALISIS_FUNCIONAL_U2.md` y `PLAN_IMPLEMENTACION_U2.md`.
 
 **Prueba rápida:** entra como `cliente@upse.edu.ec`, añade un producto, confirma la compra y entra como `admin@upse.edu.ec` al Dashboard. El saldo de comisiones aumenta. No se realizan cobros reales. Para consultar PostgreSQL: `docker compose exec db psql -U multicatalogo -d multicatalogo`.
@@ -98,7 +100,7 @@ npm run test:e2e
 
 Las pruebas E2E levantan Vite si hace falta y requieren la API activa. Crean pedidos, productos y usuarios de prueba: conviene ejecutarlas contra una base separada. Se puede cambiar la API mediante `VITE_API_URL` para el navegador y `API_URL` para las peticiones directas de Playwright.
 Usan contextos de navegador aislados, por lo que no modifican el carrito de tu navegador.
-Son 11 pruebas que cubren API, roles, navegación, registro, administración, cálculos, compra, almacenamiento, accesibilidad
+Son 12 pruebas que cubren API, roles, navegación, registro, administración, cálculos, compra, almacenamiento, árbol desplegable, filtros, exportación CSV, accesibilidad
 básica del lightbox y diseño móvil. Los reportes de fallo quedan en `test-results/`.
 El lint permite los tres avisos de Fast Refresh de los contextos, como indica la guía.
 `tests/backoffice_smoke.py` prueba el back-office contra una API local en el puerto 3001 conectada a una base descartable.

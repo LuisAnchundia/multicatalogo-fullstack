@@ -36,7 +36,7 @@ El servidor comprueba en cada petición autenticada que la cuenta siga activa y 
 
 - El checkout sigue siendo una **simulación de compra**; no hay pasarela de pago ni movimiento bancario.
 - Las liquidaciones son registros internos de comisiones. Se requiere un proceso contable y de pago externo para operar con dinero real.
-- El árbol se consulta hasta tres niveles, como en el ejercicio original. No se implementó carga diferida ni expansión por nodo.
+- El árbol se consulta hasta tres niveles, como en el ejercicio original. La pantalla permite expandir ramas y filtrar la red, pero aún no hay carga diferida desde el servidor.
 - Los rangos se calculan por referidos directos al mostrar la pantalla; no hay cierre mensual automático.
 - Los reportes por periodo usan pedidos guardados; el saldo inicial del administrador sigue siendo un dato de demostración.
 
