@@ -1,5 +1,5 @@
-const CACHE = 'multicatalogo-shell-v1';
-const SHELL = ['/', '/index.html', '/manifest.json', '/pwa-192.png', '/pwa-512.png'];
+const CACHE = 'multicatalogo-shell-v2';
+const SHELL = ['/', '/index.html', '/manifest.json', '/favicon.svg', '/pwa-192.png', '/pwa-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));

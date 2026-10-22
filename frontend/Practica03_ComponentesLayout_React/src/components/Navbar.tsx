@@ -32,7 +32,7 @@ export default function Navbar({ adminView }: { adminView: boolean }) {
       <button type="button" onClick={toggleCollapse} aria-label={isCollapsed ? 'Expandir menú' : 'Contraer menú'} title={isCollapsed ? 'Expandir menú' : 'Contraer menú'} className="mc-icon-button mc-collapse-button"><IconToggle /></button>
       {adminView ? <>
         <span className="mc-nav-context">Centro de operaciones</span>
-      </> : <span className="mc-nav-section"><span className="mc-brand-mark" aria-hidden="true">✦</span>{titulo}</span>}
+      </> : <span className="mc-nav-section"><img className="mc-brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />{titulo}</span>}
     </div>
     <div className="mc-nav-actions">
       {!adminView && <form onSubmit={buscar} role="search" className="mc-nav-search"><span aria-hidden="true">⌕</span><input aria-label="Buscar en la tienda" placeholder="Buscar cosméticos..." value={busqueda} onChange={e => setBusqueda(e.target.value)} /></form>}

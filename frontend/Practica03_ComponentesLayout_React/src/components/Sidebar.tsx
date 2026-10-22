@@ -27,7 +27,7 @@ export default function Sidebar({ isCollapsed, isOpen, onClose, adminView }: Sid
     {isOpen && <button type="button" aria-label="Cerrar menú" className="mc-drawer-backdrop" onClick={onClose} />}
     <aside className={`mc-sidebar ${adminView ? 'mc-sidebar-admin' : 'mc-sidebar-store'} ${isCollapsed ? 'mc-sidebar-collapsed' : ''} ${isOpen ? 'mc-sidebar-open' : ''}`}>
       <div className="mc-sidebar-brand">
-        <span className="mc-brand-mark" aria-hidden="true">✦</span>
+        <img className="mc-brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />
         <span className="mc-sidebar-brand-text">MultiCatálogo <small>{adminView ? 'Admin Hub' : 'Tienda y red'}</small></span>
       </div>
       <button type="button" onClick={onClose} className="mc-sidebar-close">Cerrar menú ×</button>
@@ -42,6 +42,7 @@ export default function Sidebar({ isCollapsed, isOpen, onClose, adminView }: Sid
       <div className="mc-sidebar-bottom">
         <span className="mc-sidebar-role">{user?.rol === 'admin' ? 'Administrador' : 'Mi cuenta'}</span>
         {adminView && <NavLink to="/tienda" onClick={onClose} className="mc-sidebar-store-link">↗ <span className="mc-sidebar-label">Volver a la tienda</span></NavLink>}
+        <small className="mc-sidebar-credit">Hecho por Luis Alfredo Anchundia Cruz</small>
       </div>
     </aside>
   </>;
