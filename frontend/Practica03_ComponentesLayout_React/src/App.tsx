@@ -70,6 +70,9 @@ function App() {
               {/* Ruta pública */}
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Registro />} />
+              <Route path="/catalogo-guardado" element={<Layout />}>
+                <Route index element={<Catalogo soloLectura />} />
+              </Route>
 
               {/* Rutas protegidas (requieren login) */}
               <Route element={<ProtectedRoute />}>

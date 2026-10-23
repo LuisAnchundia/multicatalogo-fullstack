@@ -1,6 +1,47 @@
 import type { Producto } from '../data/productos';
 import { apiRequest } from './api';
 
+const CATALOG_CACHE_KEY = 'multicatalogo_catalogo_publico_v1';
+export const CATALOG_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+
+export interface CatalogoGuardado {
+  productos: Producto[];
+  guardadoEn: number;
+}
+
+function esProducto(value: unknown): value is Producto {
+  if (!value || typeof value !== 'object') return false;
+  const item = value as Partial<Producto>;
+  return typeof item.id === 'number' && Number.isFinite(item.id) &&
+    typeof item.nombre === 'string' && typeof item.descripcion === 'string' &&
+    typeof item.precio === 'number' && Number.isFinite(item.precio) &&
+    typeof item.categoria === 'string' && typeof item.img === 'string' &&
+    Array.isArray(item.galeria) && item.galeria.every(img => typeof img === 'string');
+}
+
+export function getCatalogoGuardado(): CatalogoGuardado | null {
+  try {
+    const raw = localStorage.getItem(CATALOG_CACHE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as Partial<CatalogoGuardado>;
+    const age = Date.now() - (saved.guardadoEn ?? 0);
+    if (!Number.isFinite(age) || age < 0 || age > CATALOG_CACHE_MAX_AGE ||
+        !Array.isArray(saved.productos) || !saved.productos.every(esProducto)) {
+      localStorage.removeItem(CATALOG_CACHE_KEY);
+      return null;
+    }
+    return saved as CatalogoGuardado;
+  } catch {
+    return null;
+  }
+}
+
+function guardarCatalogo(productos: Producto[]): void {
+  try {
+    localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({ productos, guardadoEn: Date.now() }));
+  } catch { /* El catálogo en línea sigue funcionando si el almacenamiento está bloqueado. */ }
+}
+
 // Las imágenes de demostración de la base inicial son fotos aleatorias.
 // Sustituimos solo esas portadas por los recursos del diseño de Stitch;
 // cualquier imagen que configure el administrador conserva su URL.
@@ -28,7 +69,27 @@ function conImagenDelDiseno(producto: Producto): Producto {
 }
 
 // El catálogo y el detalle vienen de PostgreSQL a través de la API Go.
-export const getProductos = async () => (await apiRequest<Producto[]>('/api/productos')).map(conImagenDelDiseno);
+export const getProductos = async () => {
+  const data = await apiRequest<Producto[]>('/api/productos');
+  if (!Array.isArray(data) || !data.every(esProducto)) throw new Error('El catálogo recibido no es válido.');
+  const productos = data.map(conImagenDelDiseno);
+  guardarCatalogo(productos);
+  return productos;
+};
+
+export async function getProductosConRespaldo(): Promise<{ productos: Producto[]; guardadoEn?: number }> {
+  const guardado = getCatalogoGuardado();
+  if (!navigator.onLine) {
+    if (guardado) return guardado;
+    throw new Error('Sin conexión. Abre el catálogo con internet para guardarlo en este dispositivo.');
+  }
+  try {
+    return { productos: await getProductos() };
+  } catch (error) {
+    if (guardado) return guardado;
+    throw error;
+  }
+}
 
 export const getProductoById = async (id: number): Promise<Producto | undefined> => {
   try {

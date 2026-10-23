@@ -80,7 +80,9 @@ Para desplegar: conecta este repositorio de GitHub en **Render → New → Bluep
 
 Render suspende el backend gratuito tras 15 minutos sin tráfico y el primer acceso puede tardar alrededor de un minuto. Abre el enlace unos minutos antes de la exposición. Su PostgreSQL gratuito vence después de 30 días; haz la demostración antes de esa fecha.
 
-La web incluye manifiesto PWA, iconos de 192 y 512 píxeles y service worker que guarda la interfaz y las imágenes visitadas. Las operaciones de la API requieren conexión. El botón **Instalar app** abre la instalación cuando el navegador la ofrece. Si no hay un aviso disponible, aparece **¿Cómo instalar?** con indicaciones breves. Una PWA ya instalada no vuelve a mostrar el aviso en el mismo perfil del navegador; para repetir la prueba hay que desinstalarla desde `brave://apps`, `chrome://apps` o `edge://apps` y recargar la página. La instalación requiere abrir el enlace HTTPS público (o `localhost` para desarrollo).
+La web incluye manifiesto PWA, iconos de 192 y 512 píxeles y service worker que guarda la interfaz, el JavaScript/CSS y las imágenes locales del catálogo. Después de abrir el catálogo con internet, guarda sus datos públicos por un máximo de **24 horas**. Si se corta la conexión, se puede consultar la última copia sin iniciar sesión desde **Ver el catálogo guardado** en la pantalla de acceso, o desde la tienda si la sesión sigue abierta. Muestra la fecha de la copia y oculta las acciones de compra; el login, los pedidos, la red, el back-office y el checkout requieren internet. Al volver la conexión, la copia se actualiza. Si vence o se borran los datos del navegador, hay que abrir el catálogo con internet otra vez.
+
+El botón **Instalar app** abre la instalación cuando el navegador la ofrece. Si no hay un aviso disponible, aparece **¿Cómo instalar?** con indicaciones breves. Una PWA ya instalada no vuelve a mostrar el aviso en el mismo perfil del navegador; para repetir la prueba hay que desinstalarla desde `brave://apps`, `chrome://apps` o `edge://apps` y recargar la página. La instalación requiere abrir el enlace HTTPS público (o `localhost` para desarrollo). El diagnóstico y las fases PWA están en `REQUIREMENTS_CHECKLIST.md`.
 
 En la entrega original del Tema 5 (antes de estas fases):
 
@@ -109,12 +111,14 @@ Primero levanta Compose. Desde `frontend/Practica03_ComponentesLayout_React`:
 npm run lint
 npm run build
 npm run test:e2e
+npm run test:pwa
 ```
 
 Las pruebas E2E levantan Vite si hace falta y requieren la API activa. Crean pedidos de prueba; los productos y usuarios temporales de las pruebas de back-office se desactivan al terminar. Conviene ejecutarlas contra una base separada. Se puede cambiar la API mediante `VITE_API_URL` para el navegador y `API_URL` para las peticiones directas de Playwright.
 Usan contextos de navegador aislados, por lo que no modifican el carrito de tu navegador.
-Son 13 pruebas que cubren API, roles, navegación, registro, administración, cálculos, compra, almacenamiento, árbol desplegable, filtros, exportación CSV, acceso con la cuenta de Luis, visibilidad de contraseña, accesibilidad
+Son 15 pruebas que cubren API, roles, navegación, registro, administración, cálculos, compra, almacenamiento, árbol desplegable, filtros, exportación CSV, acceso con la cuenta de Luis, visibilidad de contraseña, accesibilidad
 básica del lightbox y diseño móvil. Los reportes de fallo quedan en `test-results/`.
+`npm run test:pwa` compila la web y ejecuta una prueba adicional con la versión de producción: guarda el catálogo, apaga la conexión, reabre la app y verifica el límite de 24 horas. Esta prueba simula las respuestas públicas de la API y no requiere levantar el backend.
 El lint permite los tres avisos de Fast Refresh de los contextos, como indica la guía.
 `tests/backoffice_smoke.py` prueba el back-office contra una API local en el puerto 3001 conectada a una base descartable.
 

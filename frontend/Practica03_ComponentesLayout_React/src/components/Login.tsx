@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginRequest } from '../services/api';
@@ -25,10 +25,18 @@ const Login = () => {
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [error, setError] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
+  const [sinConexion, setSinConexion] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const actualizar = () => setSinConexion(!navigator.onLine);
+    window.addEventListener('online', actualizar);
+    window.addEventListener('offline', actualizar);
+    return () => { window.removeEventListener('online', actualizar); window.removeEventListener('offline', actualizar); };
+  }, []);
 
   const navigate = useNavigate();
   const { login, user } = useAuth();
-  if (user) return <Navigate to={user.rol === 'admin' ? '/' : '/tienda'} replace />;
+  if (user) return <Navigate to={sinConexion ? '/catalogo-guardado' : user.rol === 'admin' ? '/' : '/tienda'} replace />;
 
   const usarCuenta = (correo: string) => {
     setEmail(correo);
@@ -50,7 +58,7 @@ const Login = () => {
       // Si el servidor está apagado fetch lanza TypeError, lo diferenciamos del 401
       const mensaje =
         err instanceof TypeError
-          ? 'No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 3000?'
+          ? 'No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.'
           : (err as Error).message;
       setError(mensaje);
     } finally {
@@ -119,6 +127,7 @@ const Login = () => {
             {cargando ? 'Verificando...' : 'Iniciar Sesión'}
           </button>
         </form>
+        {sinConexion && <p className="mc-login-offline">Sin internet, puedes <Link to="/catalogo-guardado">ver el catálogo guardado</Link>.</p>}
         <p className="mt-4 text-center"><Link className="text-indigo-700 underline" to="/registro">Crear cuenta</Link></p>
         <div className="mt-6 rounded-lg bg-emerald-50 p-4 text-xs text-slate-700 space-y-3">
           <div><p className="font-semibold">Cuentas de prueba · contraseña: <span className="font-mono">123456</span></p><p className="mt-1 text-slate-500">Pulsa una cuenta para rellenar los campos.</p></div>

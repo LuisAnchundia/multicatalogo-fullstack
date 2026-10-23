@@ -126,6 +126,9 @@ h1, h2, h3 { text-wrap: balance; }
 .mc-footer-brand { font-family: 'Playfair Display', Georgia, serif; font-size: 1.15rem; }
 .mc-footer-credit { flex-basis: 100%; border-top: 1px solid #d8e9dd; padding-top: 13px; color: #849087; font-size: .68rem; font-weight: 500; text-align: right; }
 .mc-login-credit { margin-top: 18px; color: #8a958d; font-size: .68rem; text-align: center; }
+.mc-login-offline { margin-top: 14px; text-align: center; color: var(--mc-green); font-size: .83rem; }
+.mc-login-offline a { color: var(--mc-wine); font-weight: 700; text-decoration: underline; }
+.mc-catalog-offline-note { margin-top: 20px; padding: 13px 16px; border: 1px solid #cfe7d7; border-radius: 10px; background: #eff9f2; color: #365942; font-size: .8rem; line-height: 1.5; }
 
 @media (max-width: 1180px) {
   .mc-nav-search { display: none; }

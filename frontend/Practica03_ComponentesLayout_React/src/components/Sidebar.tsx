@@ -7,6 +7,7 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   adminView: boolean;
+  offlineView: boolean;
 }
 
 const menu = [
@@ -21,18 +22,19 @@ const menu = [
   { to: '/admin/liquidaciones', label: 'Liquidaciones', Icon: IconMiRed, soloAdmin: true },
 ];
 
-export default function Sidebar({ isCollapsed, isOpen, onClose, adminView }: SidebarProps) {
+export default function Sidebar({ isCollapsed, isOpen, onClose, adminView, offlineView }: SidebarProps) {
   const { user } = useAuth();
+  const visibleMenu = offlineView ? [{ to: '/catalogo-guardado', label: 'Catálogo', Icon: IconCatalogo }] : menu.filter(item => !item.soloAdmin || user?.rol === 'admin');
   return <>
     {isOpen && <button type="button" aria-label="Cerrar menú" className="mc-drawer-backdrop" onClick={onClose} />}
     <aside className={`mc-sidebar ${adminView ? 'mc-sidebar-admin' : 'mc-sidebar-store'} ${isCollapsed ? 'mc-sidebar-collapsed' : ''} ${isOpen ? 'mc-sidebar-open' : ''}`}>
       <div className="mc-sidebar-brand">
         <img className="mc-brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />
-        <span className="mc-sidebar-brand-text">MultiCatálogo <small>{adminView ? 'Admin Hub' : 'Tienda y red'}</small></span>
+        <span className="mc-sidebar-brand-text">MultiCatálogo <small>{adminView ? 'Admin Hub' : offlineView ? 'Consulta sin conexión' : 'Tienda y red'}</small></span>
       </div>
       <button type="button" onClick={onClose} className="mc-sidebar-close">Cerrar menú ×</button>
       <nav aria-label="Navegación principal" className="mc-sidebar-nav">
-        {menu.filter(item => !item.soloAdmin || user?.rol === 'admin').map(({ to, label, Icon }) => <NavLink
+        {visibleMenu.map(({ to, label, Icon }) => <NavLink
           key={to} to={to} end={to === '/'} aria-label={label} onClick={onClose} title={isCollapsed ? label : undefined}
           className={({ isActive }) => `mc-sidebar-link ${isActive ? 'is-active' : ''}`}>
           <Icon className="mc-sidebar-icon" />
@@ -40,7 +42,8 @@ export default function Sidebar({ isCollapsed, isOpen, onClose, adminView }: Sid
         </NavLink>)}
       </nav>
       <div className="mc-sidebar-bottom">
-        <span className="mc-sidebar-role">{user?.rol === 'admin' ? 'Administrador' : 'Mi cuenta'}</span>
+        <span className="mc-sidebar-role">{offlineView ? 'Solo consulta' : user?.rol === 'admin' ? 'Administrador' : 'Mi cuenta'}</span>
+        {offlineView && <NavLink to="/login" onClick={onClose} className="mc-sidebar-store-link">↗ <span className="mc-sidebar-label">Iniciar sesión</span></NavLink>}
         {adminView && <NavLink to="/tienda" onClick={onClose} className="mc-sidebar-store-link">↗ <span className="mc-sidebar-label">Volver a la tienda</span></NavLink>}
         <small className="mc-sidebar-credit">Hecho por Luis Alfredo Anchundia Cruz</small>
       </div>

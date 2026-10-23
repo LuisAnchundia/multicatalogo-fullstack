@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { getProductos } from '../services/productosService';
+import { CATALOG_CACHE_MAX_AGE, getCatalogoGuardado, getProductos, getProductosConRespaldo } from '../services/productosService';
 import type { Producto } from '../data/productos';
 
-export default function Catalogo({ storefront = false }: { storefront?: boolean }) {
+export default function Catalogo({ storefront = false, soloLectura = false }: { storefront?: boolean; soloLectura?: boolean }) {
   const { addToCart } = useCart();
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [initialSaved] = useState(() => soloLectura ? getCatalogoGuardado() : null);
+  const [productos, setProductos] = useState<Producto[]>(initialSaved?.productos ?? []);
+  const [loading, setLoading] = useState(!soloLectura);
+  const [error, setError] = useState(soloLectura && !initialSaved ? 'No hay un catálogo guardado. Ábrelo con internet para poder consultarlo sin conexión.' : '');
+  const [guardadoEn, setGuardadoEn] = useState<number | null>(initialSaved?.guardadoEn ?? null);
   const [sort, setSort] = useState('relevancia');
   const [searchParams, setSearchParams] = useSearchParams();
   const categoria = searchParams.get('categoria') ?? 'Todas';
@@ -16,10 +18,40 @@ export default function Catalogo({ storefront = false }: { storefront?: boolean 
 
   useEffect(() => {
     let active = true;
-    getProductos().then(data => { if (active) { setProductos(data); setLoading(false); } })
-      .catch((cause: unknown) => { if (active) { setError(cause instanceof Error ? cause.message : 'No se pudo cargar el catálogo'); setLoading(false); } });
+    if (soloLectura) return () => { active = false; };
+    getProductosConRespaldo().then(({ productos: data, guardadoEn: fecha }) => {
+      if (active) { setProductos(data); setGuardadoEn(fecha ?? null); setLoading(false); }
+    }).catch((cause: unknown) => {
+      if (active) { setError(cause instanceof Error ? cause.message : 'No se pudo cargar el catálogo'); setLoading(false); }
+    });
     return () => { active = false; };
-  }, []);
+  }, [soloLectura]);
+
+  useEffect(() => {
+    const actualizar = () => {
+      getProductos().then(data => {
+        setProductos(data);
+        setGuardadoEn(soloLectura ? getCatalogoGuardado()?.guardadoEn ?? null : null);
+        setError('');
+        setLoading(false);
+      }).catch(() => { /* La copia guardada permanece disponible si la reconexión falla. */ });
+    };
+    window.addEventListener('online', actualizar);
+    return () => window.removeEventListener('online', actualizar);
+  }, [soloLectura]);
+
+  useEffect(() => {
+    if (guardadoEn === null) return;
+    const remaining = Math.max(0, CATALOG_CACHE_MAX_AGE - (Date.now() - guardadoEn));
+    const timer = window.setTimeout(() => {
+      setProductos([]);
+      setGuardadoEn(null);
+      setError('El catálogo guardado venció. Conéctate para actualizarlo.');
+    }, remaining + 1);
+    return () => window.clearTimeout(timer);
+  }, [guardadoEn]);
+
+  const consulta = soloLectura || guardadoEn !== null;
 
   const categoriasDisponibles = useMemo(() => Array.from(new Set(productos.map(item => item.categoria))), [productos]);
   const productosFiltrados = useMemo(() => {
@@ -45,6 +77,7 @@ export default function Catalogo({ storefront = false }: { storefront?: boolean 
         <div className="mc-hero-trust"><span><b aria-hidden="true">✧</b><strong>Compra sencilla</strong><small>Desde cualquier lugar</small></span><span><b aria-hidden="true">◇</b><strong>Comparte tu red</strong><small>Consulta tus comisiones</small></span></div>
       </section>
 
+      {guardadoEn !== null && !loading && !error && <p role="status" className="mc-catalog-offline-note">Catálogo guardado el {new Date(guardadoEn).toLocaleString('es-EC')}. Puedes consultarlo sin internet durante 24 horas. Para comprar, vuelve a conectarte.</p>}
       {loading ? <p role="status" className="mc-card mc-message">Cargando catálogo...</p> : error ? <p role="alert" className="mc-card mc-message text-red-700">{error}</p> : <>
         <section className="mc-catalog-toolbar" aria-label="Filtros de productos">
           <div className="mc-catalog-toolbar-top"><div className="mc-search-field"><span aria-hidden="true">⌕</span><input type="search" aria-label="Buscar productos" placeholder="Buscar sérums, cremas, kits..." value={busqueda} onChange={e => cambiarParametro('buscar', e.target.value)} /></div><div className="mc-catalog-sort"><span>{productosFiltrados.length} producto(s) encontrado(s)</span><label>Ordenar por: <select aria-label="Ordenar productos" value={sort} onChange={e => setSort(e.target.value)}><option value="relevancia">Relevancia</option><option value="precio-asc">Menor precio</option><option value="precio-desc">Mayor precio</option><option value="nombre">Nombre A-Z</option></select></label></div></div>
@@ -53,12 +86,12 @@ export default function Catalogo({ storefront = false }: { storefront?: boolean 
         </section>
 
         {productosFiltrados.length ? <section className="mc-product-grid" aria-label="Productos">{productosFiltrados.map(prod => <article className="mc-product-card" key={prod.id}>
-          <Link to={`/producto/${prod.id}`} className="mc-product-media"><img src={prod.img} alt={prod.nombre} loading="lazy" /></Link>
-          <div className="mc-product-copy"><span className="mc-product-category">{prod.categoria}</span><Link to={`/producto/${prod.id}`}><h2>{prod.nombre}</h2></Link><p>{prod.descripcion}</p><div className="mc-product-bottom"><span><small>Precio público</small><strong>${prod.precio.toFixed(2)}</strong></span><button type="button" aria-label={`Añadir ${prod.nombre} al carrito`} onClick={() => addToCart(prod)}>＋ Añadir</button></div></div>
+          {consulta ? <div className="mc-product-media"><img src={prod.img} alt={prod.nombre} loading="lazy" /></div> : <Link to={`/producto/${prod.id}`} className="mc-product-media"><img src={prod.img} alt={prod.nombre} loading="lazy" /></Link>}
+          <div className="mc-product-copy"><span className="mc-product-category">{prod.categoria}</span>{consulta ? <h2>{prod.nombre}</h2> : <Link to={`/producto/${prod.id}`}><h2>{prod.nombre}</h2></Link>}<p>{prod.descripcion}</p><div className="mc-product-bottom"><span><small>Precio público</small><strong>${prod.precio.toFixed(2)}</strong></span>{!consulta && <button type="button" aria-label={`Añadir ${prod.nombre} al carrito`} onClick={() => addToCart(prod)}>＋ Añadir</button>}</div></div>
         </article>)}</section> : <div className="mc-card mc-catalog-empty"><p>No hay productos que coincidan con tu búsqueda.</p><button type="button" className="mc-btn mc-btn-soft" onClick={() => setSearchParams({})}>Limpiar filtros</button></div>}
       </>}
 
-      <section className="mc-soft-banner mc-referral-banner"><div><span className="mc-kicker">Tu red de referidos</span><h2 className="mc-serif">Comparte lo que te gusta y haz crecer tu red</h2><p>Consulta tus referidos, revisa las comisiones registradas y copia tu enlace personal para invitar a alguien.</p></div><Link to="/mi-red" className="mc-btn mc-btn-primary">Ver Mi Red y Enlace →</Link></section>
+      {!consulta && <section className="mc-soft-banner mc-referral-banner"><div><span className="mc-kicker">Tu red de referidos</span><h2 className="mc-serif">Comparte lo que te gusta y haz crecer tu red</h2><p>Consulta tus referidos, revisa las comisiones registradas y copia tu enlace personal para invitar a alguien.</p></div><Link to="/mi-red" className="mc-btn mc-btn-primary">Ver Mi Red y Enlace →</Link></section>}
     </div>
   </div>;
 }
