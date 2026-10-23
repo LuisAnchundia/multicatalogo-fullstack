@@ -30,7 +30,10 @@ export default function Sidebar({ isCollapsed, isOpen, onClose, adminView, offli
     <aside className={`mc-sidebar ${adminView ? 'mc-sidebar-admin' : 'mc-sidebar-store'} ${isCollapsed ? 'mc-sidebar-collapsed' : ''} ${isOpen ? 'mc-sidebar-open' : ''}`}>
       <div className="mc-sidebar-brand">
         <img className="mc-brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />
-        <span className="mc-sidebar-brand-text">MultiCatálogo <small>{adminView ? 'Admin Hub' : offlineView ? 'Consulta sin conexión' : 'Tienda y red'}</small></span>
+        <span className="mc-sidebar-brand-text">MultiCatálogo
+          <small>{adminView ? 'Admin Hub' : offlineView ? 'Consulta sin conexión' : 'Tienda y red'}</small>
+          <span className="mc-sidebar-author">Luis Alfredo Anchundia Cruz</span>
+        </span>
       </div>
       <button type="button" onClick={onClose} className="mc-sidebar-close">Cerrar menú ×</button>
       <nav aria-label="Navegación principal" className="mc-sidebar-nav">
@@ -45,7 +48,6 @@ export default function Sidebar({ isCollapsed, isOpen, onClose, adminView, offli
         <span className="mc-sidebar-role">{offlineView ? 'Solo consulta' : user?.rol === 'admin' ? 'Administrador' : 'Mi cuenta'}</span>
         {offlineView && <NavLink to="/login" onClick={onClose} className="mc-sidebar-store-link">↗ <span className="mc-sidebar-label">Iniciar sesión</span></NavLink>}
         {adminView && <NavLink to="/tienda" onClick={onClose} className="mc-sidebar-store-link">↗ <span className="mc-sidebar-label">Volver a la tienda</span></NavLink>}
-        <small className="mc-sidebar-credit">Hecho por Luis Alfredo Anchundia Cruz</small>
       </div>
     </aside>
   </>;

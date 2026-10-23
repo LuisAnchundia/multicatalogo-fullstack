@@ -19,7 +19,6 @@ export default function Layout() {
           <Link to={offlineView ? '/catalogo-guardado' : '/tienda'} className="mc-footer-brand">MultiCatálogo</Link>
           <span>Cosmética y una comunidad que crece contigo.</span>
           <Link to={offlineView ? '/login' : '/mi-red'}>{offlineView ? 'Iniciar sesión →' : 'Mi red de referidos →'}</Link>
-          <small className="mc-footer-credit">Hecho por Luis Alfredo Anchundia Cruz</small>
         </footer>}
       </main>
     </div>

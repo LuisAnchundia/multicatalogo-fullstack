@@ -142,7 +142,6 @@ const Login = () => {
             </button>)}
           </div></details>
         </div>
-        <p className="mc-login-credit">Hecho por Luis Alfredo Anchundia Cruz</p>
       </div>
     </div>
   );
