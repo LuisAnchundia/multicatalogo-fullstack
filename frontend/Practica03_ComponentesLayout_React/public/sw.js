@@ -1,7 +1,8 @@
-const CACHE = 'multicatalogo-shell-v3';
+const CACHE = 'multicatalogo-shell-v4';
 const SHELL = ['/', '/index.html', '/manifest.json', '/favicon.svg', '/pwa-192.png', '/pwa-512.png'];
 const PRODUCT_IMAGES = [
-  'contorno-ojos', 'crema-hidratante', 'kit-rutina', 'mascarilla-nocturna',
+  'aceite-corporal-almendras', 'balsamo-labial-cacao', 'bruma-facial-rosas',
+  'contorno-ojos', 'crema-hidratante', 'gel-limpiador-avena', 'kit-rutina', 'mascarilla-nocturna',
   'serum-galeria-1', 'serum-galeria-2', 'serum-galeria-3', 'serum-retinol',
   'serum-revitalizante', 'tonico-exfoliante', 'tonico-purificante',
 ].map(name => `/productos/${name}.webp`);

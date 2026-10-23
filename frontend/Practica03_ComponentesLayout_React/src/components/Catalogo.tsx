@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { CATALOG_CACHE_MAX_AGE, getCatalogoGuardado, getProductos, getProductosConRespaldo } from '../services/productosService';
 import type { Producto } from '../data/productos';
+import { productosExhibicion } from '../data/exhibicion';
 
 export default function Catalogo({ storefront = false, soloLectura = false }: { storefront?: boolean; soloLectura?: boolean }) {
   const { addToCart } = useCart();
@@ -90,6 +91,14 @@ export default function Catalogo({ storefront = false, soloLectura = false }: { 
           <div className="mc-product-copy"><span className="mc-product-category">{prod.categoria}</span>{consulta ? <h2>{prod.nombre}</h2> : <Link to={`/producto/${prod.id}`}><h2>{prod.nombre}</h2></Link>}<p>{prod.descripcion}</p><div className="mc-product-bottom"><span><small>Precio público</small><strong>${prod.precio.toFixed(2)}</strong></span>{!consulta && <button type="button" aria-label={`Añadir ${prod.nombre} al carrito`} onClick={() => addToCart(prod)}>＋ Añadir</button>}</div></div>
         </article>)}</section> : <div className="mc-card mc-catalog-empty"><p>No hay productos que coincidan con tu búsqueda.</p><button type="button" className="mc-btn mc-btn-soft" onClick={() => setSearchParams({})}>Limpiar filtros</button></div>}
       </>}
+
+      {!loading && !error && categoria === 'Todas' && !busqueda.trim() && <section className="mc-exhibition" aria-labelledby="mc-exhibition-title">
+        <div className="mc-exhibition-heading"><div><span className="mc-kicker">Ideas para tu rutina</span><h2 id="mc-exhibition-title" className="mc-serif">Más para descubrir</h2></div><p>Artículos de exhibición. Todavía no están disponibles para pedidos.</p></div>
+        <div className="mc-product-grid" aria-label="Productos en exhibición">{productosExhibicion.map(item => <article className="mc-product-card" key={item.nombre}>
+          <div className="mc-product-media"><img src={item.img} alt={item.nombre} loading="lazy" /></div>
+          <div className="mc-product-copy"><span className="mc-product-category">{item.categoria}</span><h3>{item.nombre}</h3><p>{item.descripcion}</p><span className="mc-exhibition-badge">Próximamente</span></div>
+        </article>)}</div>
+      </section>}
 
       {!consulta && <section className="mc-soft-banner mc-referral-banner"><div><span className="mc-kicker">Tu red de referidos</span><h2 className="mc-serif">Comparte lo que te gusta y haz crecer tu red</h2><p>Consulta tus referidos, revisa las comisiones registradas y copia tu enlace personal para invitar a alguien.</p></div><Link to="/mi-red" className="mc-btn mc-btn-primary">Ver Mi Red y Enlace →</Link></section>}
     </div>
