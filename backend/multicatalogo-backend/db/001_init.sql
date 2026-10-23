@@ -62,16 +62,16 @@ CREATE TABLE comisiones (
     PRIMARY KEY (pedido_id, beneficiario_id, nivel)
 );
 
--- Cuentas de clase; la contraseña 123456 se guarda como bcrypt, no como texto plano.
+-- Cuentas de clase; la contraseña 12345678 se guarda como bcrypt, no como texto plano.
 INSERT INTO usuarios(id,email,password_hash,nombre,rol,parent_id,ventas_cents,saldo_cents) VALUES
-(1,'admin@upse.edu.ec',crypt('123456',gen_salt('bf')),'Tú','admin',NULL,240000,31950),
-(2,'cliente@upse.edu.ec',crypt('123456',gen_salt('bf')),'Ana García','cliente',1,120000,0),
-(3,'luis.poveda@demo.local',crypt('123456',gen_salt('bf')),'Luis Poveda','cliente',1,85000,0),
-(4,'marta.sanchez@demo.local',crypt('123456',gen_salt('bf')),'Marta Sánchez','cliente',1,43000,0),
-(5,'carlos.ruiz@demo.local',crypt('123456',gen_salt('bf')),'Carlos Ruiz','cliente',2,50000,0),
-(6,'sofia.leon@demo.local',crypt('123456',gen_salt('bf')),'Sofía León','cliente',2,43000,0),
-(7,'marco.diaz@demo.local',crypt('123456',gen_salt('bf')),'Marco Díaz','cliente',3,38000,0),
-(8,'diana.paz@demo.local',crypt('123456',gen_salt('bf')),'Diana Paz','cliente',5,30000,0);
+(1,'admin@upse.edu.ec',crypt('12345678',gen_salt('bf')),'Tú','admin',NULL,240000,31950),
+(2,'cliente@upse.edu.ec',crypt('12345678',gen_salt('bf')),'Ana García','cliente',1,120000,0),
+(3,'luis.poveda@demo.local',crypt('12345678',gen_salt('bf')),'Luis Poveda','cliente',1,85000,0),
+(4,'marta.sanchez@demo.local',crypt('12345678',gen_salt('bf')),'Marta Sánchez','cliente',1,43000,0),
+(5,'carlos.ruiz@demo.local',crypt('12345678',gen_salt('bf')),'Carlos Ruiz','cliente',2,50000,0),
+(6,'sofia.leon@demo.local',crypt('12345678',gen_salt('bf')),'Sofía León','cliente',2,43000,0),
+(7,'marco.diaz@demo.local',crypt('12345678',gen_salt('bf')),'Marco Díaz','cliente',3,38000,0),
+(8,'diana.paz@demo.local',crypt('12345678',gen_salt('bf')),'Diana Paz','cliente',5,30000,0);
 SELECT setval(pg_get_serial_sequence('usuarios','id'), 8);
 
 INSERT INTO productos(id,nombre,descripcion,precio_cents,categoria,img,galeria,stock) VALUES

@@ -21,7 +21,7 @@ test('el catálogo guardado se puede abrir sin internet y vence tras 24 horas', 
   const online = await context.newPage();
   await online.goto('/login');
   await online.getByLabel('Correo Electrónico', { exact: true }).fill('cliente@upse.edu.ec');
-  await online.getByLabel('Contraseña', { exact: true }).fill('123456');
+  await online.getByLabel('Contraseña', { exact: true }).fill('12345678');
   await online.getByRole('button', { name: 'Iniciar Sesión' }).click();
   await expect(online).toHaveURL('/tienda');
   await expect(online.locator('.mc-product-card')).toHaveCount(2);

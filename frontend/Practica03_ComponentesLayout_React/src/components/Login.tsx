@@ -6,16 +6,18 @@ import { IconEye, IconEyeOff } from './Icons';
 import InstallButton from './InstallButton';
 
 const cuentasPrincipales = [
-  { nombre: 'Administrador', email: 'admin@upse.edu.ec', password: '123456' },
-  { nombre: 'Ana García · cliente', email: 'cliente@upse.edu.ec', password: '123456' },
-  { nombre: 'Luis Poveda · cliente', email: 'luis.poveda@demo.local', password: '123456' },
+  { nombre: 'Administrador', email: 'admin@upse.edu.ec' },
+  { nombre: 'Ana García · cliente', email: 'cliente@upse.edu.ec' },
+  { nombre: 'Luis Poveda · cliente', email: 'luis.poveda@demo.local' },
 ];
 
 const otrasCuentas = [
-  { nombre: 'José Adrián García Muñoz', email: 'jose.garcia81@gmail.com', password: '12345678' },
-  { nombre: 'Alfredo Luis Lázaro Benaviedes', email: 'alfredo.lazaro74@gmail.com', password: '12345678' },
-  { nombre: 'Anahis Gabriela Arévalo Choez', email: 'anahis.arevalo24@gmail.com', password: '12345678' },
+  { nombre: 'José Adrián García Muñoz', email: 'jose.garcia81@gmail.com' },
+  { nombre: 'Alfredo Luis Lázaro Benaviedes', email: 'alfredo.lazaro74@gmail.com' },
+  { nombre: 'Anahis Gabriela Arévalo Choez', email: 'anahis.arevalo24@gmail.com' },
 ];
+
+const passwordDemo = '12345678';
 
 const Login = () => {
   const [email, setEmail] = useState<string>('');
@@ -36,9 +38,9 @@ const Login = () => {
   const { login, user } = useAuth();
   if (user) return <Navigate to={sinConexion ? '/catalogo-guardado' : user.rol === 'admin' ? '/' : '/tienda'} replace />;
 
-  const usarCuenta = (cuenta: { email: string; password: string }) => {
+  const usarCuenta = (cuenta: { email: string }) => {
     setEmail(cuenta.email);
-    setPassword(cuenta.password);
+    setPassword(passwordDemo);
     setError('');
   };
 
@@ -130,7 +132,7 @@ const Login = () => {
         <div className="mt-6 rounded-lg bg-emerald-50 p-4 text-xs text-slate-700 space-y-3">
           <div>
             <p className="font-semibold">Cuentas de prueba</p>
-            <p className="mt-1 text-slate-500">Admin, Ana y Luis: <span className="font-mono">123456</span> · Cuentas nuevas: <span className="font-mono">12345678</span></p>
+            <p className="mt-1 text-slate-500">Todas usan la contraseña <span className="font-mono">{passwordDemo}</span>.</p>
             <p className="mt-1 text-slate-500">Pulsa una cuenta para rellenar los campos.</p>
           </div>
           <div className="grid gap-1.5">

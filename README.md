@@ -18,7 +18,7 @@ npm run dev -- --port 5173 --strictPort
 
 Abre <http://localhost:5173>. La API escucha en el puerto 3000.
 PostgreSQL se expone en `localhost:5433` porque el puerto 5432 ya está ocupado en este equipo; Redis usa `localhost:6379`. Dentro de Compose, el backend conecta con `db:5432` y `redis:6379`.
-El SQL de `backend/multicatalogo-backend/db/001_init.sql` se ejecuta al crear el volumen por primera vez. El backend aplica `db/002_backoffice.sql` al iniciar, también sobre volúmenes existentes; no hace falta borrar los datos. Las credenciales de clase están en el seed y la configuración de ejemplo en `.env.example`.
+El SQL de `backend/multicatalogo-backend/db/001_init.sql` se ejecuta al crear el volumen por primera vez. El backend aplica `db/002_backoffice.sql` y la actualización de contraseñas de prueba de `db/003_demo_passwords.sql` al iniciar, también sobre volúmenes existentes; no hace falta borrar los datos. Las credenciales de clase están en el seed y la configuración de ejemplo en `.env.example`.
 Las carpetas `Unidad1_Frontend/Proyecto_base` y `Unidad2_Backend/multicatalogo-backend`
 que cita la guía corresponden aquí a las carpetas `frontend/...` y `backend/...` anteriores.
 
@@ -52,9 +52,12 @@ Los tokens van firmados con `TOKEN_SECRET`, y las contraseñas de demostración 
 
 | Rol | Correo | Contraseña | Inicio |
 |---|---|---|---|
-| Admin | admin@upse.edu.ec | 123456 | Dashboard (`/`) |
-| Cliente | cliente@upse.edu.ec | 123456 | Tienda (`/tienda`) |
-| Cliente | luis.poveda@demo.local | 123456 | Tienda (`/tienda`) |
+| Admin | admin@upse.edu.ec | 12345678 | Dashboard (`/`) |
+| Cliente | cliente@upse.edu.ec | 12345678 | Tienda (`/tienda`) |
+| Cliente | luis.poveda@demo.local | 12345678 | Tienda (`/tienda`) |
+| Cliente | jose.garcia81@gmail.com | 12345678 | Tienda (`/tienda`) |
+| Cliente | alfredo.lazaro74@gmail.com | 12345678 | Tienda (`/tienda`) |
+| Cliente | anahis.arevalo24@gmail.com | 12345678 | Tienda (`/tienda`) |
 
 ## Funciones y alcance
 

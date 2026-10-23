@@ -29,6 +29,9 @@ var backofficeMigration string
 //go:embed db/001_init.sql
 var initialSchema string
 
+//go:embed db/003_demo_passwords.sql
+var demoPasswordsMigration string
+
 // Los datos de clase se crean únicamente en una base vacía. En local Docker ya
 // ejecuta 001_init.sql, por lo que esta operación no altera el volumen actual.
 func bootstrapDatabase(ctx context.Context, db *sql.DB) error {
@@ -92,6 +95,10 @@ func main() {
 			slog.Error("No se pudo aplicar la migración de back-office", "error", err)
 			os.Exit(1)
 		}
+	}
+	if _, err := db.ExecContext(ctx, demoPasswordsMigration); err != nil {
+		slog.Error("No se pudieron actualizar las contraseñas de prueba", "error", err)
+		os.Exit(1)
 	}
 	var redisClient *redis.Client
 	for {

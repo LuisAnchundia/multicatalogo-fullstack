@@ -5,7 +5,7 @@ const API = process.env.API_URL ?? 'http://localhost:3000';
 async function login(page: Page, rol: 'admin' | 'cliente') {
   await page.goto('/login');
   await page.getByLabel('Correo Electrónico', { exact: true }).fill(`${rol}@upse.edu.ec`);
-  await page.getByLabel('Contraseña', { exact: true }).fill('123456');
+  await page.getByLabel('Contraseña', { exact: true }).fill('12345678');
   await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
   await expect(page).toHaveURL(rol === 'admin' ? '/' : '/tienda');
 }
@@ -33,7 +33,7 @@ test('cuenta de Luis y control para ver la contraseña en acceso y registro', as
   await page.getByRole('button', { name: /Luis Poveda/ }).click();
   await expect(page.getByLabel('Correo Electrónico', { exact: true })).toHaveValue('luis.poveda@demo.local');
   const password = page.getByLabel('Contraseña', { exact: true });
-  await expect(password).toHaveValue('123456');
+  await expect(password).toHaveValue('12345678');
   await expect(password).toHaveAttribute('type', 'password');
   await page.getByRole('button', { name: 'Mostrar contraseña' }).click();
   await expect(password).toHaveAttribute('type', 'text');
@@ -54,7 +54,7 @@ test('cuenta de Luis y control para ver la contraseña en acceso y registro', as
 
 test('API: dos roles, credenciales incorrectas, JSON inválido y catálogo base', async ({ request }) => {
   for (const rol of ['admin', 'cliente']) {
-    const res = await request.post(`${API}/api/login`, { data: { email: `${rol}@upse.edu.ec`, password: '123456' } });
+    const res = await request.post(`${API}/api/login`, { data: { email: `${rol}@upse.edu.ec`, password: '12345678' } });
     expect(res.status()).toBe(200);
     expect(await res.json()).toMatchObject({ email: `${rol}@upse.edu.ec`, rol });
   }
@@ -76,7 +76,7 @@ test('red: cálculos recursivos, límites de nivel y KPIs compartidos', async ({
   expect(contarRed(vacia)).toBe(0);
   expect(sumarVentasRed(vacia)).toBe(0);
   expect(sumarComisiones(vacia)).toBe(0);
-  const loginResponse = await request.post(`${API}/api/login`, { data: { email: 'admin@upse.edu.ec', password: '123456' } });
+  const loginResponse = await request.post(`${API}/api/login`, { data: { email: 'admin@upse.edu.ec', password: '12345678' } });
   const auth = await loginResponse.json();
   const redResponse = await request.get(`${API}/api/red`, { headers: { Authorization: `Bearer ${auth.token}` } });
   const red = await redResponse.json();

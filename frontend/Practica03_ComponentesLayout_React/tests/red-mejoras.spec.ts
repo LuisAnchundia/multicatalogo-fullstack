@@ -15,7 +15,7 @@ test('red desplegable, filtros y exportación de comisiones', async ({ page }) =
   }));
   await page.goto('/login');
   await page.getByLabel('Correo Electrónico', { exact: true }).fill('admin@upse.edu.ec');
-  await page.getByLabel('Contraseña', { exact: true }).fill('123456');
+  await page.getByLabel('Contraseña', { exact: true }).fill('12345678');
   await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
   await page.goto('/mi-red');
   await expect(page.getByRole('heading', { name: 'Mi Red de Referidos' })).toBeVisible();

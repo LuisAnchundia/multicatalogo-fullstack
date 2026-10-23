@@ -27,7 +27,7 @@ test('registro referido y red personal', async ({ page, request }) => {
     await expect(page.getByLabel('Enlace de referido')).toHaveValue(/\/registro\?ref=MC\d+/);
     await expect(page.getByText('Aún no tienes referidos.')).toBeVisible();
   } finally {
-    const admin = await request.post(`${API}/api/login`, { data: { email: 'admin@upse.edu.ec', password: '123456' } });
+    const admin = await request.post(`${API}/api/login`, { data: { email: 'admin@upse.edu.ec', password: '12345678' } });
     const { token } = await admin.json() as { token: string };
     const limpieza = await request.patch(`${API}/api/usuarios/${usuarioId}`, { headers: { Authorization: `Bearer ${token}` }, data: { rol: 'cliente', activo: false } });
     expect(limpieza.status()).toBe(204);
@@ -35,7 +35,7 @@ test('registro referido y red personal', async ({ page, request }) => {
 });
 
 test('administración de productos y acceso a las pantallas del back-office', async ({ page, request }) => {
-  await login(page, 'admin@upse.edu.ec', '123456');
+  await login(page, 'admin@upse.edu.ec', '12345678');
   await expect(page.getByRole('heading', { name: 'Resumen del negocio' })).toBeVisible();
   await page.getByRole('navigation').getByRole('link', { name: 'Productos', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Productos' })).toBeVisible();
@@ -56,7 +56,7 @@ test('administración de productos y acceso a las pantallas del back-office', as
       await expect(page.getByRole('heading', { name: heading })).toBeVisible();
     }
   } finally {
-    const admin = await request.post(`${API}/api/login`, { data: { email: 'admin@upse.edu.ec', password: '123456' } });
+    const admin = await request.post(`${API}/api/login`, { data: { email: 'admin@upse.edu.ec', password: '12345678' } });
     const { token } = await admin.json() as { token: string };
     const limpieza = await request.delete(`${API}/api/productos/${productoId}`, { headers: { Authorization: `Bearer ${token}` } });
     expect(limpieza.status()).toBe(204);
