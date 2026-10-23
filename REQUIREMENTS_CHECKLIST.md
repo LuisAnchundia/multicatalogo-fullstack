@@ -64,7 +64,7 @@
 
 - [x] Verificar en Chromium de producción que se puede abrir, cerrar y reabrir sin internet con imágenes y datos guardados.
 - [x] Verificar que la copia vence tras 24 horas y que no aparecen controles de compra sin conexión.
-- [ ] Publicar y comprobar la nueva versión en Render.
+- [x] Publicar y comprobar la nueva versión en Render: enlace HTTPS, acceso y ocho productos de la API.
 
 El catálogo debe haberse abierto al menos una vez con internet en ese dispositivo. Las demás funciones que consultan o modifican la API siguen requiriendo conexión.
 
