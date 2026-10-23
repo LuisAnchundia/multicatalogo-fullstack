@@ -6,17 +6,15 @@ import { IconEye, IconEyeOff } from './Icons';
 import InstallButton from './InstallButton';
 
 const cuentasPrincipales = [
-  { nombre: 'Administrador', email: 'admin@upse.edu.ec' },
-  { nombre: 'Ana García · cliente', email: 'cliente@upse.edu.ec' },
-  { nombre: 'Luis Poveda · cliente', email: 'luis.poveda@demo.local' },
+  { nombre: 'Administrador', email: 'admin@upse.edu.ec', password: '123456' },
+  { nombre: 'Ana García · cliente', email: 'cliente@upse.edu.ec', password: '123456' },
+  { nombre: 'Luis Poveda · cliente', email: 'luis.poveda@demo.local', password: '123456' },
 ];
 
 const otrasCuentas = [
-  { nombre: 'Marta Sánchez', email: 'marta.sanchez@demo.local' },
-  { nombre: 'Carlos Ruiz', email: 'carlos.ruiz@demo.local' },
-  { nombre: 'Sofía León', email: 'sofia.leon@demo.local' },
-  { nombre: 'Marco Díaz', email: 'marco.diaz@demo.local' },
-  { nombre: 'Diana Paz', email: 'diana.paz@demo.local' },
+  { nombre: 'José Adrián García Muñoz', email: 'jose.garcia81@gmail.com', password: '12345678' },
+  { nombre: 'Alfredo Luis Lázaro Benaviedes', email: 'alfredo.lazaro74@gmail.com', password: '12345678' },
+  { nombre: 'Anahis Gabriela Arévalo Choez', email: 'anahis.arevalo24@gmail.com', password: '12345678' },
 ];
 
 const Login = () => {
@@ -38,9 +36,9 @@ const Login = () => {
   const { login, user } = useAuth();
   if (user) return <Navigate to={sinConexion ? '/catalogo-guardado' : user.rol === 'admin' ? '/' : '/tienda'} replace />;
 
-  const usarCuenta = (correo: string) => {
-    setEmail(correo);
-    setPassword('123456');
+  const usarCuenta = (cuenta: { email: string; password: string }) => {
+    setEmail(cuenta.email);
+    setPassword(cuenta.password);
     setError('');
   };
 
@@ -130,14 +128,18 @@ const Login = () => {
         {sinConexion && <p className="mc-login-offline">Sin internet, puedes <Link to="/catalogo-guardado">ver el catálogo guardado</Link>.</p>}
         <p className="mt-4 text-center"><Link className="text-indigo-700 underline" to="/registro">Crear cuenta</Link></p>
         <div className="mt-6 rounded-lg bg-emerald-50 p-4 text-xs text-slate-700 space-y-3">
-          <div><p className="font-semibold">Cuentas de prueba · contraseña: <span className="font-mono">123456</span></p><p className="mt-1 text-slate-500">Pulsa una cuenta para rellenar los campos.</p></div>
+          <div>
+            <p className="font-semibold">Cuentas de prueba</p>
+            <p className="mt-1 text-slate-500">Admin, Ana y Luis: <span className="font-mono">123456</span> · Cuentas nuevas: <span className="font-mono">12345678</span></p>
+            <p className="mt-1 text-slate-500">Pulsa una cuenta para rellenar los campos.</p>
+          </div>
           <div className="grid gap-1.5">
-            {cuentasPrincipales.map(cuenta => <button key={cuenta.email} type="button" onClick={() => usarCuenta(cuenta.email)} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50">
+            {cuentasPrincipales.map(cuenta => <button key={cuenta.email} type="button" onClick={() => usarCuenta(cuenta)} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50">
               <span className="block font-semibold">{cuenta.nombre}</span><span className="block text-slate-600">{cuenta.email}</span>
             </button>)}
           </div>
-          <details><summary className="cursor-pointer font-semibold text-indigo-700">Ver otras 5 cuentas de prueba</summary><div className="mt-2 grid gap-1.5">
-            {otrasCuentas.map(cuenta => <button key={cuenta.email} type="button" onClick={() => usarCuenta(cuenta.email)} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50">
+          <details><summary className="cursor-pointer font-semibold text-indigo-700">Ver otras 3 cuentas de prueba</summary><div className="mt-2 grid gap-1.5">
+            {otrasCuentas.map(cuenta => <button key={cuenta.email} type="button" onClick={() => usarCuenta(cuenta)} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50">
               <span className="block font-semibold">{cuenta.nombre}</span><span className="block text-slate-600">{cuenta.email}</span>
             </button>)}
           </div></details>
